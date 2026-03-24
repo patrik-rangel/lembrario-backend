@@ -30,3 +30,47 @@ func (q *Queries) WithTx(tx pgx.Tx) *Queries {
 		db: tx,
 	}
 }
+package db
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+// NewDBPool cria e retorna um novo pool de conexões com o PostgreSQL.
+func NewDBPool(ctx context.Context) (*pgxpool.Pool, error) {
+	connStr := os.Getenv("DATABASE_URL")
+	if connStr == "" {
+		return nil, fmt.Errorf("DATABASE_URL environment variable is not set")
+	}
+
+	config, err := pgxpool.ParseConfig(connStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse DATABASE_URL: %w", err)
+	}
+
+	// Configurações opcionais do pool
+	config.MaxConns = 5                 // Número máximo de conexões abertas
+	config.MinConns = 2                 // Número mínimo de conexões ociosas
+	config.MaxConnLifetime = time.Hour // Tempo máximo de vida de uma conexão
+	config.HealthCheckPeriod = time.Minute // Período de verificação de saúde
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create connection pool: %w", err)
+	}
+
+	// Tenta conectar para verificar a conexão inicial
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err = pool.Ping(ctx); err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("failed to connect to the database: %w", err)
+	}
+
+	return pool, nil
+}
