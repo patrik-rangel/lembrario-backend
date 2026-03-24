@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-dev-api-doc/internal/service"
+	"lembrario-backend/internal/service"
 )
 
 // CreateContentRequest representa o corpo da requisição POST /contents.

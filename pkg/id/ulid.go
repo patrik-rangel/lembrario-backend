@@ -2,7 +2,6 @@ package id
 
 import (
 	"crypto/rand"
-	"io"
 	"time"
 
 	"github.com/oklog/ulid/v2"

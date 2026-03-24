@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/go-dev-api-doc/internal/db" // Assumindo que o sqlc gerou tipos e queries aqui
-	"github.com/go-dev-api-doc/pkg/id"
+	"lembrario-backend/internal/db" // Assumindo que o sqlc gerou tipos e queries aqui
+	"lembrario-backend/pkg/id"
+
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -37,7 +39,7 @@ func (s *ContentService) Create(ctx context.Context, params CreateContentParams)
 	createArgs := db.CreateContentParams{
 		ID:   contentID,
 		Url:  params.URL,
-		Type: params.Type,
+		Type: pgtype.Text{String: params.Type, Valid: true},
 	}
 
 	content, err := s.queries.CreateContent(ctx, createArgs)

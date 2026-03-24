@@ -4,8 +4,6 @@ import (
 	"log"
 
 	"lembrario-backend/internal/api"
-
-	"github.com/gin-gonic/gin"
 )
 
 func main() {

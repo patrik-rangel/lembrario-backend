@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/go-dev-api-doc/internal/queue"
-	"github.com/go-dev-api-doc/internal/worker"
+	"lembrario-backend/internal/queue"
+	"lembrario-backend/internal/worker"
 )
 
 func main() {

@@ -7,10 +7,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-dev-api-doc/internal/api/content_handler" // Novo handler
-	"github.com/go-dev-api-doc/internal/db"                   // Para o pool do DB e sqlc queries
-	"github.com/go-dev-api-doc/internal/queue"                // Para o cliente Redis
-	"github.com/go-dev-api-doc/internal/service"              // Para o serviço de conteúdo
+	"lembrario-backend/internal/db"                   // Para o pool do DB e sqlc queries
+	"lembrario-backend/internal/queue"                // Para o cliente Redis
+	"lembrario-backend/internal/service"              // Para o serviço de conteúdo
 )
 
 // SetupRouter configura as rotas da API
@@ -35,7 +34,7 @@ func SetupRouter() *gin.Engine {
 	contentService := service.NewContentService(queries, redisClient)
 
 	// Inicializa os Handlers
-	contentHandler := content_handler.NewContentHandler(contentService)
+	contentHandler := NewContentHandler(contentService)
 
 	// Rota de saúde simples
 	router.GET("/health", func(c *gin.Context) {
