@@ -6,9 +6,13 @@ package db
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type DBTX interface {
@@ -30,16 +34,6 @@ func (q *Queries) WithTx(tx pgx.Tx) *Queries {
 		db: tx,
 	}
 }
-package db
-
-import (
-	"context"
-	"fmt"
-	"os"
-	"time"
-
-	"github.com/jackc/pgx/v5/pgxpool"
-)
 
 // NewDBPool cria e retorna um novo pool de conexões com o PostgreSQL.
 func NewDBPool(ctx context.Context) (*pgxpool.Pool, error) {
