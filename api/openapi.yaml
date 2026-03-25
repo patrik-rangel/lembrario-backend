@@ -1,0 +1,37 @@
+openapi: 3.0.3
+info:
+  title: Lembrário API
+  version: 1.0.0
+paths:
+  /contents:
+    post:
+      summary: Ingestão de nova URL
+      responses:
+        '202':
+          description: Aceito para processamento
+    get:
+      summary: Listagem de conteúdos
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Lista de conteúdos
+  /contents/{id}:
+    get:
+      summary: Detalhes do conteúdo
+    delete:
+      summary: Remove um conteúdo
+    patch:
+      summary: Atualiza a nota do conteúdo
+      operationId: updateNote
+  /search:
+    get:
+      summary: Busca no Meilisearch
+  /events:
+    get:
+      summary: Stream de eventos SSE
+      description: Mantém conexão aberta para notificações de processamento.
