@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -40,24 +39,24 @@ type Note struct {
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
 
-type CreateContentRequest struct {
-	Url  string `json:"url" binding:"required"`
-	Type string `json:"type" binding:"required"`
-}
+// type CreateContentRequest struct {
+// 	Url  string `json:"url" binding:"required"`
+// 	Type string `json:"type" binding:"required"`
+// }
 
-type CreateContentResponse struct {
-	Id  *string `json:"id,omitempty"`
-	Url *string `json:"url,omitempty"`
-}
+// type CreateContentResponse struct {
+// 	Id  *string `json:"id,omitempty"`
+// 	Url *string `json:"url,omitempty"`
+// }
 
-type GetContentsParams struct {
-	Limit  *int `form:"limit"`
-	Offset *int `form:"offset"`
-}
+// type GetContentsParams struct {
+// 	Limit  *int `form:"limit"`
+// 	Offset *int `form:"offset"`
+// }
 
-type UpdateNoteRequest struct {
-	Body string `json:"body" binding:"required"`
-}
+// type UpdateNoteRequest struct {
+// 	Body string `json:"body" binding:"required"`
+// }
 
 func NewContentHandler(contentService *service.ContentService) *ContentHandler {
 	return &ContentHandler{
