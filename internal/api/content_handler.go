@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"lembrario-backend/internal/service"
@@ -10,6 +11,52 @@ import (
 
 type ContentHandler struct {
 	contentService *service.ContentService
+}
+
+type ContentWithMetadata struct {
+	Id        *string    `json:"id,omitempty"`
+	Url       *string    `json:"url,omitempty"`
+	Status    *string    `json:"status,omitempty"`
+	Type      string     `json:"type"`
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	Metadata  *Metadata  `json:"metadata,omitempty"`
+	Note      *Note      `json:"note,omitempty"`
+}
+
+type Metadata struct {
+	Title         string `json:"title"`
+	Description   string `json:"description"`
+	ThumbnailPath string `json:"thumbnailPath"`
+	Transcript    string `json:"transcript"`
+	Provider      string `json:"provider"`
+	ReadingTime   int    `json:"readingTime"`
+}
+
+type Note struct {
+	Id        *string    `json:"id,omitempty"`
+	Body      *string    `json:"body,omitempty"`
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+}
+
+type CreateContentRequest struct {
+	Url  string `json:"url" binding:"required"`
+	Type string `json:"type" binding:"required"`
+}
+
+type CreateContentResponse struct {
+	Id  *string `json:"id,omitempty"`
+	Url *string `json:"url,omitempty"`
+}
+
+type GetContentsParams struct {
+	Limit  *int `form:"limit"`
+	Offset *int `form:"offset"`
+}
+
+type UpdateNoteRequest struct {
+	Body string `json:"body" binding:"required"`
 }
 
 func NewContentHandler(contentService *service.ContentService) *ContentHandler {
@@ -197,5 +244,5 @@ func (h *ContentHandler) DeleteContent(c *gin.Context, id string) {
 		return
 	}
 
-	c.JSON(http.StatusNoContent, nil)
+	c.Status(http.StatusNoContent)
 }
