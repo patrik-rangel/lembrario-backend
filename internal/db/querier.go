@@ -15,6 +15,8 @@ type Querier interface {
 	GetContentByID(ctx context.Context, id string) (GetContentByIDRow, error)
 	GetContents(ctx context.Context, arg GetContentsParams) ([]GetContentsRow, error)
 	GetNoteByContentID(ctx context.Context, contentID string) (Note, error)
+	UpdateContentStatus(ctx context.Context, arg UpdateContentStatusParams) error
+	UpsertMetadata(ctx context.Context, arg UpsertMetadataParams) (Metadata, error)
 	UpsertNote(ctx context.Context, arg UpsertNoteParams) (Note, error)
 }
 

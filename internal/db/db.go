@@ -6,12 +6,9 @@ package db
 
 import (
 	"context"
-	"os"
-	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type DBTX interface {
@@ -32,29 +29,4 @@ func (q *Queries) WithTx(tx pgx.Tx) *Queries {
 	return &Queries{
 		db: tx,
 	}
-}
-
-func NewDBPool(ctx context.Context) (*pgxpool.Pool, error) {
-	// Exemplo de string: "postgres://user:pass@localhost:5432/lembrario?sslmode=disable"
-	connStr := os.Getenv("DATABASE_URL")
-	if connStr == "" {
-		return nil, fmt.Errorf("a variável de ambiente DATABASE_URL não foi definida")
-	}
-
-	config, err := pgxpool.ParseConfig(connStr)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao parsear config do banco: %w", err)
-	}
-
-	pool, err := pgxpool.NewWithConfig(ctx, config)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao criar pool de conexões: %w", err)
-	}
-
-	// Testa a conexão imediatamente
-	if err := pool.Ping(ctx); err != nil {
-		return nil, fmt.Errorf("não foi possível pingar o banco: %w", err)
-	}
-
-	return pool, nil
 }

@@ -1,39 +1,43 @@
 version: '3'
 services:
-  api:
-    build: ./cmd/api
-    environment:
-      - DATABASE_URL=postgres://user:password@db:5432/database
-      - REDIS_ADDR=redis:6379
-    ports:
-      - "8080:8080"
-    depends_on:
-      - db
-      - redis
-    restart: always
+  # api:
+  #   build: ./cmd/api
+  #   environment:
+  #     - DATABASE_URL=postgres://user:password@db:5432/database
+  #     - REDIS_ADDR=redis:6379
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   restart: always
 
-  worker:
-    build: ./cmd/worker
-    environment:
-      - DATABASE_URL=postgres://user:password@db:5432/database
-      - REDIS_ADDR=redis:6379
-    depends_on:
-      - db
-      - redis
-    restart: always
+  # worker:
+  #   build: ./cmd/worker
+  #   environment:
+  #     - DATABASE_URL=postgres://user:password@db:5432/database
+  #     - REDIS_ADDR=redis:6379
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   restart: always
 
   db:
     image: postgres:14
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=database
+      - POSTGRES_DB=lembrario  # <--- Sincronizado com o .env
+    ports:
+      - "5432:5432"            # <--- Essencial para o go run externo funcionar
     volumes:
       - db-data:/var/lib/postgresql/data
     restart: always
 
   redis:
     image: redis:7
+    ports:
+      - "6379:6379"
     restart: always
 
 volumes:

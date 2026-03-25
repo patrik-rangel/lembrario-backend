@@ -24,3 +24,34 @@ LEFT JOIN metadata m ON c.id = m.content_id
 LEFT JOIN notes n ON c.id = n.content_id
 ORDER BY c.created_at DESC
 LIMIT $1 OFFSET $2;
+
+-- name: UpsertMetadata :one
+INSERT INTO metadata (
+    content_id, 
+    title, 
+    description, 
+    thumbnail_path, 
+    transcript, 
+    provider, 
+    reading_time, 
+    raw_data,
+    updated_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, NOW()
+)
+ON CONFLICT (content_id) DO UPDATE SET
+    title = EXCLUDED.title,
+    description = EXCLUDED.description,
+    thumbnail_path = EXCLUDED.thumbnail_path,
+    transcript = EXCLUDED.transcript,
+    provider = EXCLUDED.provider,
+    reading_time = EXCLUDED.reading_time,
+    raw_data = EXCLUDED.raw_data,
+    updated_at = NOW()
+RETURNING *;
+
+-- name: UpdateContentStatus :exec
+UPDATE contents
+SET status = $2, 
+    updated_at = NOW()
+WHERE id = $1;

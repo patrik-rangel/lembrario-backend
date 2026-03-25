@@ -174,3 +174,84 @@ func (q *Queries) GetContents(ctx context.Context, arg GetContentsParams) ([]Get
 	}
 	return items, nil
 }
+
+const updateContentStatus = `-- name: UpdateContentStatus :exec
+UPDATE contents
+SET status = $2, 
+    updated_at = NOW()
+WHERE id = $1
+`
+
+type UpdateContentStatusParams struct {
+	ID     string
+	Status string
+}
+
+func (q *Queries) UpdateContentStatus(ctx context.Context, arg UpdateContentStatusParams) error {
+	_, err := q.db.Exec(ctx, updateContentStatus, arg.ID, arg.Status)
+	return err
+}
+
+const upsertMetadata = `-- name: UpsertMetadata :one
+INSERT INTO metadata (
+    content_id, 
+    title, 
+    description, 
+    thumbnail_path, 
+    transcript, 
+    provider, 
+    reading_time, 
+    raw_data,
+    updated_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, NOW()
+)
+ON CONFLICT (content_id) DO UPDATE SET
+    title = EXCLUDED.title,
+    description = EXCLUDED.description,
+    thumbnail_path = EXCLUDED.thumbnail_path,
+    transcript = EXCLUDED.transcript,
+    provider = EXCLUDED.provider,
+    reading_time = EXCLUDED.reading_time,
+    raw_data = EXCLUDED.raw_data,
+    updated_at = NOW()
+RETURNING content_id, title, description, thumbnail_path, transcript, provider, reading_time, raw_data, created_at, updated_at
+`
+
+type UpsertMetadataParams struct {
+	ContentID     string
+	Title         pgtype.Text
+	Description   pgtype.Text
+	ThumbnailPath pgtype.Text
+	Transcript    pgtype.Text
+	Provider      pgtype.Text
+	ReadingTime   pgtype.Int4
+	RawData       []byte
+}
+
+func (q *Queries) UpsertMetadata(ctx context.Context, arg UpsertMetadataParams) (Metadata, error) {
+	row := q.db.QueryRow(ctx, upsertMetadata,
+		arg.ContentID,
+		arg.Title,
+		arg.Description,
+		arg.ThumbnailPath,
+		arg.Transcript,
+		arg.Provider,
+		arg.ReadingTime,
+		arg.RawData,
+	)
+	var i Metadata
+	err := row.Scan(
+		&i.ContentID,
+		&i.Title,
+		&i.Description,
+		&i.ThumbnailPath,
+		&i.Transcript,
+		&i.Provider,
+		&i.ReadingTime,
+		&i.RawData,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
