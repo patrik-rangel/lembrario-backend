@@ -1,3 +1,9 @@
 .aider*
 
 plan.md
+
+# Environment files
+.env
+
+# Keep example file
+!.env.example
