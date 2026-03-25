@@ -1,15 +1,15 @@
 package worker
 
 import (
-    "context"                                                                                                                                                
-    "encoding/json"                                                                                                                                          
-    "fmt"                                                                                                                      
-    "log"                                                                                                                                                    
-    "time"                                                                                                                                                   
-                                                                                                                                                             
-    "github.com/jackc/pgx/v5/pgtype"                                                                                                                         
-    "github.com/redis/go-redis/v9"                                                                                                                           
-    "lembrario-backend/internal/db" 
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/redis/go-redis/v9"
+	"lembrario-backend/internal/db"
 )
 
 const (
@@ -32,9 +32,12 @@ type ContentUpdateEvent struct {
 
 // ScrapedData representa os dados extraídos de uma URL
 type ScrapedData struct {
-	Title       string
-	Description string
-	Provider    string
+	Title        string
+	Description  string
+	Provider     string
+	ThumbnailURL string // novo
+	AuthorName   string // novo — canal do YouTube, autor do artigo etc.
+	Duration     string // novo — para vídeos/podcasts
 }
 
 // StartWorker inicia o consumidor da fila de enriquecimento com graceful shutdown.
@@ -91,6 +94,13 @@ func processContent(ctx context.Context, redisClient *redis.Client, queries *db.
 
 	log.Printf("📄 Dados extraídos - Título: %s, Provider: %s", scrapedData.Title, scrapedData.Provider)
 
+	thumbnailPath, err := downloadThumbnail(ctx, payload.ID, scrapedData.ThumbnailURL)
+	if err != nil {
+		log.Printf("⚠️ Erro ao baixar thumbnail para ID %s: %v (continuando)", payload.ID, err)
+		thumbnailPath = ""
+	}
+	scrapedData.ThumbnailURL = thumbnailPath
+
 	// 2. Salvar metadados no banco
 	err = saveMetadata(ctx, queries, payload.ID, scrapedData)
 	if err != nil {
@@ -136,15 +146,20 @@ func handleError(ctx context.Context, redisClient *redis.Client, queries *db.Que
 
 // saveMetadata salva os metadados extraídos no banco de dados
 func saveMetadata(ctx context.Context, queries *db.Queries, contentID string, data *ScrapedData) error {
+	rawJson, _ := json.Marshal(map[string]string{
+		"source":        "scraper_v1",
+		"fetched_at":    time.Now().String(),
+		"thumbnail_url": data.ThumbnailURL, // guarda a URL original no raw_data
+	})
 	params := db.UpsertMetadataParams{
 		ContentID:     contentID,
 		Title:         pgtype.Text{String: data.Title, Valid: data.Title != ""},
 		Description:   pgtype.Text{String: data.Description, Valid: data.Description != ""},
-		ThumbnailPath: pgtype.Text{Valid: false},
+		ThumbnailPath: pgtype.Text{String: data.ThumbnailURL, Valid: data.ThumbnailURL != ""},
 		Transcript:    pgtype.Text{Valid: false},
 		Provider:      pgtype.Text{String: data.Provider, Valid: data.Provider != ""},
 		ReadingTime:   pgtype.Int4{Valid: false},
-		RawData:       []byte{},
+		RawData:       rawJson,
 	}
 
 	_, err := queries.UpsertMetadata(ctx, params)
