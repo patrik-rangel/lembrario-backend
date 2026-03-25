@@ -5,33 +5,392 @@ info:
 paths:
   /contents:
     post:
-      summary: Ingestão de nova URL
+      tags:
+        - Contents
+      summary: Cria um novo conteúdo para enriquecimento assíncrono
+      description: Recebe uma URL e o tipo de conteúdo, salva no banco de dados e enfileira para processamento.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContentRequest'
       responses:
         '202':
           description: Aceito para processamento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateContentResponse'
+        '400':
+          description: Requisição inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     get:
-      summary: Listagem de conteúdos
+      tags:
+        - Contents
+      summary: Lista todos os conteúdos
+      description: Retorna uma lista paginada de todos os conteúdos armazenados.
       parameters:
         - name: limit
           in: query
+          description: Número máximo de resultados a retornar
           schema:
             type: integer
             default: 20
+        - name: offset
+          in: query
+          description: Número de itens a pular antes de começar a retornar os resultados
+          schema:
+            type: integer
+            default: 0
       responses:
         '200':
           description: Lista de conteúdos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentListResponse'
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /contents/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ULID do conteúdo
+        schema:
+          type: string
+          example: 01HPCW4K9D0Y5Z7R0B0X0S0M0Q
     get:
-      summary: Detalhes do conteúdo
+      tags:
+        - Contents
+      summary: Obtém detalhes de um conteúdo específico
+      description: Retorna todos os metadados e detalhes de um conteúdo pelo seu ID.
+      responses:
+        '200':
+          description: Detalhes do conteúdo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentDetailResponse'
+        '404':
+          description: Conteúdo não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
-      summary: Remove um conteúdo
+      tags:
+        - Contents
+      summary: Exclui um conteúdo
+      description: Remove um conteúdo e todos os seus metadados associados pelo seu ID.
+      responses:
+        '204':
+          description: Conteúdo removido com sucesso (Sem Conteúdo)
+        '404':
+          description: Conteúdo não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     patch:
-      summary: Atualiza a nota do conteúdo
       operationId: updateNote
+      tags:
+        - Contents
+        - Notes
+      summary: Atualiza a nota de um conteúdo
+      description: Atualiza o corpo da nota associada a um conteúdo específico.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNoteRequest'
+      responses:
+        '200':
+          description: Nota atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteResponse' # Ou ContentDetailResponse se retornar o conteúdo completo
+        '400':
+          description: Requisição inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Conteúdo ou Nota não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /search:
     get:
-      summary: Busca no Meilisearch
+      tags:
+        - Search
+      summary: Realiza uma busca nos conteúdos
+      description: Busca conteúdos utilizando Meilisearch com base em uma query de texto.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Termo de busca
+          schema:
+            type: string
+            example: "rick astley"
+        - name: limit
+          in: query
+          description: Número máximo de resultados a retornar
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          description: Número de itens a pular antes de começar a retornar os resultados
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Resultados da busca
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /events:
     get:
+      tags:
+        - Events
       summary: Stream de eventos SSE
-      description: Mantém conexão aberta para notificações de processamento.
+      description: Mantém uma conexão Server-Sent Events (SSE) para receber notificações em tempo real sobre o status de processamento dos conteúdos.
+      responses:
+        '200':
+          description: Stream de eventos SSE
+          content:
+            text/event-stream:
+              schema:
+                type: string # Event stream é um formato de texto
+                example: |
+                  event: content.status.updated
+                  data: {"id": "01HPCW4K9D0Y5Z7R0B0X0S0M0Q", "status": "COMPLETED", "title": "...", "url": "..."}
+
+                  event: content.status.updated
+                  data: {"id": "01HPCW4K9D0Y5Z7R0B0X0S0M0P", "status": "ERROR", "error_message": "Failed to scrape content"}
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    CreateContentRequest:
+      type: object
+      required:
+        - url
+        - type
+      properties:
+        url:
+          type: string
+          format: uri
+          description: URL do conteúdo a ser processado
+          example: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+        type:
+          type: string
+          description: Tipo do conteúdo (e.g., "video", "article", "audio")
+          example: video
+    CreateContentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ULID do conteúdo criado
+          example: 01HPCW4K9D0Y5Z7R0B0X0S0M0Q
+        url:
+          type: string
+          format: uri
+          description: URL original do conteúdo
+          example: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+    Content:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ULID do conteúdo
+          example: 01HPCW4K9D0Y5Z7R0B0X0S0M0Q
+        url:
+          type: string
+          format: uri
+          description: URL original do conteúdo
+          example: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, ERROR]
+          description: Status atual do processamento do conteúdo
+          example: PENDING
+        type:
+          type: string
+          description: Tipo do conteúdo (e.g., "video", "article")
+          example: video
+        createdAt:
+          type: string
+          format: date-time
+          description: Data e hora de criação do conteúdo
+          example: "2023-10-27T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Data e hora da última atualização do conteúdo
+          example: "2023-10-27T10:00:00Z"
+        title:
+          type: string
+          nullable: true
+          description: Título extraído do conteúdo
+          example: Rick Astley - Never Gonna Give You Up (Official Music Video)
+        description:
+          type: string
+          nullable: true
+          description: Descrição ou resumo extraído do conteúdo
+          example: O vídeo oficial para "Never Gonna Give You Up" de Rick Astley.
+        thumbnailPath:
+          type: string
+          nullable: true
+          format: uri
+          description: URL para a imagem em miniatura do conteúdo
+          example: https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg
+        transcript:
+          type: string
+          nullable: true
+          description: Transcrição do conteúdo (se aplicável, e.g., vídeos)
+        provider:
+          type: string
+          nullable: true
+          description: Provedor do conteúdo (e.g., "youtube.com")
+        readingTime:
+          type: integer
+          nullable: true
+          description: Tempo de leitura estimado em minutos (para artigos)
+    ContentListResponse:
+      type: object
+      properties:
+        contents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Content'
+        total:
+          type: integer
+          description: Número total de conteúdos disponíveis
+          example: 42
+    ContentDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/Content'
+    UpdateNoteRequest:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+          description: O novo corpo da nota associada ao conteúdo
+          example: Minha anotação atualizada sobre este vídeo.
+    NoteResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ULID da nota
+          example: 01HPCW4K9D0Y5Z7R0B0X0S0M0Q
+        contentId:
+          type: string
+          description: ULID do conteúdo ao qual a nota pertence
+          example: 01HPCW4K9D0Y5Z7R0B0X0S0M0Q
+        body:
+          type: string
+          description: O corpo da nota
+          example: Minha anotação atualizada sobre este vídeo.
+        createdAt:
+          type: string
+          format: date-time
+          description: Data e hora de criação da nota
+          example: "2023-10-27T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Data e hora da última atualização da nota
+          example: "2023-10-27T10:05:00Z"
+    SearchResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Content'
+        totalHits:
+          type: integer
+          description: Número total de resultados encontrados
+          example: 10
+        limit:
+          type: integer
+          description: Limite de resultados por página
+          example: 20
+        offset:
+          type: integer
+          description: Offset da paginação
+          example: 0
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Mensagem de erro
+          example: Requisição inválida
+        details:
+          type: string
+          nullable: true
+          description: Detalhes adicionais do erro
+          example: O campo 'url' é obrigatório
+    NotFoundResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Mensagem de erro para recurso não encontrado
+          example: Conteúdo não encontrado
