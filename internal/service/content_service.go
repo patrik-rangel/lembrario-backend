@@ -32,6 +32,18 @@ type CreateContentParams struct {
 	Type string
 }
 
+// UpdateNoteParams define os parâmetros para atualização de uma nota.
+type UpdateNoteParams struct {
+	ContentID string
+	Body      string
+}
+
+// GetContentsParams define os parâmetros para listagem de conteúdos.
+type GetContentsParams struct {
+	Limit  int32
+	Offset int32
+}
+
 // Create cria um novo conteúdo, salva no banco de dados e o enfileira para enriquecimento.
 func (s *ContentService) Create(ctx context.Context, params CreateContentParams) (db.Content, error) {
 	contentID := id.New()
@@ -68,4 +80,37 @@ func (s *ContentService) Create(ctx context.Context, params CreateContentParams)
 	}
 
 	return content, nil
+}
+
+// GetByID busca um conteúdo por ID, incluindo metadados e nota associada.
+func (s *ContentService) GetByID(ctx context.Context, contentID string) (db.GetContentByIDRow, error) {
+	return s.queries.GetContentByID(ctx, contentID)
+}
+
+// GetContents lista conteúdos com paginação, incluindo metadados e notas.
+func (s *ContentService) GetContents(ctx context.Context, params GetContentsParams) ([]db.GetContentsRow, error) {
+	args := db.GetContentsParams{
+		Limit:  params.Limit,
+		Offset: params.Offset,
+	}
+	return s.queries.GetContents(ctx, args)
+}
+
+// UpsertNote cria ou atualiza uma nota associada a um conteúdo.
+func (s *ContentService) UpsertNote(ctx context.Context, params UpdateNoteParams) (db.Note, error) {
+	noteID := id.New()
+
+	args := db.UpsertNoteParams{
+		ID:        noteID,
+		ContentID: params.ContentID,
+		Body:      params.Body,
+	}
+
+	return s.queries.UpsertNote(ctx, args)
+}
+
+// Delete remove um conteúdo e todos os dados associados (cascade).
+func (s *ContentService) Delete(ctx context.Context, contentID string) error {
+	// O DELETE CASCADE no banco cuidará de remover metadados e notas automaticamente
+	return s.queries.DeleteContent(ctx, contentID)
 }

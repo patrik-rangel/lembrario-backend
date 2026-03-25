@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"lembrario-backend/internal/service"
@@ -50,4 +51,151 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 		Id:  &content.ID,
 		Url: &content.Url,
 	})
+}
+
+// GetContents lista conteúdos com paginação.
+func (h *ContentHandler) GetContents(c *gin.Context, params GetContentsParams) {
+	// Valores padrão para paginação
+	limit := int32(20)
+	offset := int32(0)
+
+	// Parse dos parâmetros de query se fornecidos
+	if params.Limit != nil {
+		limit = int32(*params.Limit)
+	}
+	if params.Offset != nil {
+		offset = int32(*params.Offset)
+	}
+
+	serviceParams := service.GetContentsParams{
+		Limit:  limit,
+		Offset: offset,
+	}
+
+	contents, err := h.contentService.GetContents(c.Request.Context(), serviceParams)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao buscar conteúdos", "details": err.Error()})
+		return
+	}
+
+	// Converter para o formato da API
+	var response []ContentWithMetadata
+	for _, content := range contents {
+		item := ContentWithMetadata{
+			Id:        &content.ID,
+			Url:       &content.Url,
+			Status:    &content.Status,
+			Type:      content.Type.String,
+			CreatedAt: &content.CreatedAt.Time,
+			UpdatedAt: &content.UpdatedAt.Time,
+		}
+
+		// Adicionar metadados se existirem
+		if content.Title.Valid {
+			item.Metadata = &Metadata{
+				Title:         content.Title.String,
+				Description:   content.Description.String,
+				ThumbnailPath: content.ThumbnailPath.String,
+				Transcript:    content.Transcript.String,
+				Provider:      content.Provider.String,
+				ReadingTime:   int(content.ReadingTime.Int32),
+			}
+		}
+
+		// Adicionar nota se existir
+		if content.NoteID.Valid {
+			item.Note = &Note{
+				Id:        &content.NoteID.String,
+				Body:      &content.NoteBody.String,
+				CreatedAt: &content.NoteCreatedAt.Time,
+				UpdatedAt: &content.NoteUpdatedAt.Time,
+			}
+		}
+
+		response = append(response, item)
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetContentByID busca um conteúdo específico por ID.
+func (h *ContentHandler) GetContentByID(c *gin.Context, id string) {
+	content, err := h.contentService.GetByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Conteúdo não encontrado"})
+		return
+	}
+
+	response := ContentWithMetadata{
+		Id:        &content.ID,
+		Url:       &content.Url,
+		Status:    &content.Status,
+		Type:      content.Type.String,
+		CreatedAt: &content.CreatedAt.Time,
+		UpdatedAt: &content.UpdatedAt.Time,
+	}
+
+	// Adicionar metadados se existirem
+	if content.Title.Valid {
+		response.Metadata = &Metadata{
+			Title:         content.Title.String,
+			Description:   content.Description.String,
+			ThumbnailPath: content.ThumbnailPath.String,
+			Transcript:    content.Transcript.String,
+			Provider:      content.Provider.String,
+			ReadingTime:   int(content.ReadingTime.Int32),
+		}
+	}
+
+	// Adicionar nota se existir
+	if content.NoteID.Valid {
+		response.Note = &Note{
+			Id:        &content.NoteID.String,
+			Body:      &content.NoteBody.String,
+			CreatedAt: &content.NoteCreatedAt.Time,
+			UpdatedAt: &content.NoteUpdatedAt.Time,
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// UpdateNote cria ou atualiza uma nota associada a um conteúdo.
+func (h *ContentHandler) UpdateNote(c *gin.Context, id string) {
+	var req UpdateNoteRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	params := service.UpdateNoteParams{
+		ContentID: id,
+		Body:      req.Body,
+	}
+
+	note, err := h.contentService.UpsertNote(c.Request.Context(), params)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao atualizar nota", "details": err.Error()})
+		return
+	}
+
+	response := Note{
+		Id:        &note.ID,
+		Body:      &note.Body,
+		CreatedAt: &note.CreatedAt.Time,
+		UpdatedAt: &note.UpdatedAt.Time,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// DeleteContent remove um conteúdo e todos os dados associados.
+func (h *ContentHandler) DeleteContent(c *gin.Context, id string) {
+	err := h.contentService.Delete(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao deletar conteúdo", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
 }

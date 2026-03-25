@@ -29,19 +29,27 @@ func (s *apiServer) GetEvents(c *gin.Context) {
 	s.sseHandler.GetEvents(c)
 }
 
-// Métodos stub para os outros endpoints da ServerInterface que ainda não estão implementados
+// GetContents implementa o endpoint GET /contents
 func (s *apiServer) GetContents(c *gin.Context, params GetContentsParams) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "Endpoint GET /contents não implementado"})
+	s.contentHandler.GetContents(c, params)
 }
-func (s *apiServer) DeleteContentsId(c *gin.Context, id string) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "Endpoint DELETE /contents/{id} não implementado"})
-}
+
+// GetContentsId implementa o endpoint GET /contents/{id}
 func (s *apiServer) GetContentsId(c *gin.Context, id string) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "Endpoint GET /contents/{id} não implementado"})
+	s.contentHandler.GetContentByID(c, id)
 }
+
+// UpdateNote implementa o endpoint PATCH /contents/{id}/note
 func (s *apiServer) UpdateNote(c *gin.Context, id string) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "Endpoint PATCH /contents/{id} não implementado"})
+	s.contentHandler.UpdateNote(c, id)
 }
+
+// DeleteContentsId implementa o endpoint DELETE /contents/{id}
+func (s *apiServer) DeleteContentsId(c *gin.Context, id string) {
+	s.contentHandler.DeleteContent(c, id)
+}
+
+// Método stub para o endpoint de busca que ainda não está implementado
 func (s *apiServer) GetSearch(c *gin.Context, params GetSearchParams) {
 	c.JSON(http.StatusNotImplemented, gin.H{"error": "Endpoint GET /search não implementado"})
 }

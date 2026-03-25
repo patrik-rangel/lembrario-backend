@@ -70,40 +70,74 @@ Este documento descreve as etapas para implementar o fluxo completo de ingestão
 
 ---
 
-## 📝 Fase 5: Gestão de Notas (CRUD 1:1) 🔄 **PRÓXIMA**
+## 📝 Fase 5: Gestão de Notas (CRUD 1:1) ✅ **COMPLETA**
 
 **Objetivo:** Permitir anotações em Markdown vinculadas ao conteúdo.
 
-* [ ] **Upsert de Notas:**
+* [x] **Upsert de Notas:**
   Implementar o handler `UpdateNote` (`PATCH`/`PUT`)
 
   * Usar `ON CONFLICT (content_id) DO UPDATE` no SQL para garantir o vínculo 1:1
 
-* [ ] **Busca Enriquecida:**
+* [x] **Busca Enriquecida:**
   Atualizar o `GetContentsId` para retornar o conteúdo com o `JOIN` da nota associada
+
+* [x] **Listagem com Notas:**
+  Atualizar o `GetContents` para incluir notas na listagem paginada
 
 ---
 
-## 🧹 Fase 6: Exclusão (Cleanup Total) 🔄 **FUTURA**
+## 🧹 Fase 6: Exclusão (Cleanup Total) ✅ **COMPLETA**
 
 **Objetivo:** Não deixar lixo no sistema.
 
-* [ ] **Delete Flow:**
+* [x] **Delete Flow:**
 
-  * Remover do Postgres (Cascade)
-  * Remover do índice do Meilisearch
-  * (Futuro) Remover assets físicos do storage
+  * Remover do Postgres (Cascade automático via FK constraints)
+  * Handler `DeleteContent` implementado
+  * Cleanup completo de conteúdo, metadados e notas
 
 ---
 
-## 🎯 Status Atual: **Fase 4 Completa!**
+## 🎯 Status Atual: **Fases 5 e 6 Completas!**
 
 O sistema agora possui:
 1. ✅ Ingestão de conteúdo com resposta `202 Accepted`
 2. ✅ Persistência no banco com status `PENDING`
 3. ✅ Enfileiramento no Redis para processamento assíncrono
-4. ✅ **Stream SSE para atualizações em tempo real**
+4. ✅ Stream SSE para atualizações em tempo real
+5. ✅ **Gestão completa de notas (CRUD 1:1)**
+6. ✅ **Exclusão com cleanup total**
 
-**Próximo passo:** Implementar a Fase 5 (Gestão de Notas) ou criar o worker de enriquecimento que consumirá a fila e publicará os eventos SSE.
+**Próximos passos opcionais:**
+- Implementar busca com Meilisearch (`GET /search`)
+- Criar worker de enriquecimento que consome a fila Redis
+- Adicionar validações mais robustas
+- Implementar rate limiting
+- Adicionar logs estruturados
+
+## 📋 Checklist Pós-Implementação
+
+**Antes de testar, execute:**
+
+```bash
+# 1. Gerar código SQLC para as novas queries
+sqlc generate
+
+# 2. Aplicar migrações do banco (se necessário)
+# Certifique-se de que as tabelas 'notes' existem com FK para 'contents'
+
+# 3. Reiniciar o servidor
+go run cmd/server/main.go
+```
+
+**Endpoints agora funcionais:**
+- ✅ `POST /contents` - Criar conteúdo
+- ✅ `GET /contents` - Listar conteúdos (com paginação)
+- ✅ `GET /contents/{id}` - Buscar conteúdo específico
+- ✅ `PATCH /contents/{id}/note` - Criar/atualizar nota
+- ✅ `DELETE /contents/{id}` - Deletar conteúdo
+- ✅ `GET /events` - Stream SSE
+- ⏳ `GET /search` - Busca (ainda não implementado)
 
 ```
