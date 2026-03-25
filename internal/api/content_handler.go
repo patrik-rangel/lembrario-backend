@@ -9,7 +9,7 @@ import (
 )
 
 type ContentHandler struct {
-	contentService *service.ContentService
+	contentService service.ContentServiceInterface
 }
 
 type ContentWithMetadata struct {
@@ -58,7 +58,7 @@ type Note struct {
 // 	Body string `json:"body" binding:"required"`
 // }
 
-func NewContentHandler(contentService *service.ContentService) *ContentHandler {
+func NewContentHandler(contentService service.ContentServiceInterface) *ContentHandler {
 	return &ContentHandler{
 		contentService: contentService,
 	}
