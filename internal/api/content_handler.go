@@ -7,18 +7,6 @@ import (
 	"lembrario-backend/internal/service"
 )
 
-// CreateContentRequest representa o corpo da requisição POST /contents.
-type CreateContentRequest struct {
-	URL  string `json:"url" binding:"required"`
-	Type string `json:"type" binding:"required"`
-}
-
-// CreateContentResponse representa o corpo da resposta para POST /contents.
-type CreateContentResponse struct {
-	ID  string `json:"id"`
-	URL string `json:"url"`
-}
-
 type ContentHandler struct {
 	contentService *service.ContentService
 }
@@ -48,7 +36,7 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 	}
 
 	params := service.CreateContentParams{
-		URL:  req.URL,
+		URL:  req.Url,
 		Type: req.Type,
 	}
 
@@ -59,7 +47,7 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusAccepted, CreateContentResponse{
-		ID:  content.ID,
-		URL: content.Url,
+		Id:  &content.ID,
+		Url: &content.Url,
 	})
 }

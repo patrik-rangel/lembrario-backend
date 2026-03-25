@@ -1,21 +1,6 @@
-output: internal/api/api.gen.go
 package: api
-generate:
-  gin: true
-  models: true
-  embedded-spec: true
-input: api/openapi.yaml
 output: internal/api/api.gen.go
-package: api
 generate:
-  gin: true
   models: true
+  gin-server: true
   embedded-spec: true
-input: api/openapi.yaml
-output: internal/api/api.gen.go
-package: api
-generate:
-  gin: true
-  models: true
-  embedded-spec: true
-input: api/openapi.yaml
