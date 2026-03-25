@@ -24,11 +24,11 @@ Objetivo: Tirar as mensagens do Redis e iniciar o processamento.
 🌐 Fase 3: Engine de Scraping (A "Mágica")
 Objetivo: Ir até a internet e buscar as informações.
 
-[ ] Scraper Service: Criar internal/worker/scraper.go.
+[x] Scraper Service: Criar internal/worker/scraper.go.
 
-[ ] Extração Básica: Usar net/http e goquery para extrair <title> e <meta name="description">.
+[x] Extração Básica: Usar net/http e goquery para extrair <title> e <meta name="description">.
 
-[ ] Identificação de Provider: Lógica simples para detectar se é YouTube (para futura integração com API de Transcrições).
+[x] Identificação de Provider: Lógica simples para detectar se é YouTube (para futura integração com API de Transcrições).
 
 📢 Fase 4: Notificação e Persistência
 Objetivo: Salvar os dados e avisar o Frontend via SSE.
