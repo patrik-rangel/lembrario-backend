@@ -12,12 +12,29 @@ import (
     "lembrario-backend/internal/db" 
 )
 
-const enrichmentQueue = "enrichment_queue"
+const (
+	enrichmentQueue       = "enrichment_queue"
+	contentUpdatesChannel = "content_updates"
+)
 
 // EnrichmentPayload representa a estrutura do payload esperado na fila de enriquecimento.
 type EnrichmentPayload struct {
 	ID  string `json:"id"`
 	URL string `json:"url"`
+}
+
+// ContentUpdateEvent representa o evento de atualização de conteúdo
+type ContentUpdateEvent struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
+	Type   string `json:"type"`
+}
+
+// ScrapedData representa os dados extraídos de uma URL
+type ScrapedData struct {
+	Title       string
+	Description string
+	Provider    string
 }
 
 // StartWorker inicia o consumidor da fila de enriquecimento com graceful shutdown.
@@ -53,14 +70,16 @@ func StartWorker(ctx context.Context, redisClient *redis.Client, queries *db.Que
 
 			log.Printf("📥 Mensagem recebida - ID: %s, URL: %s", payload.ID, payload.URL)
 
-			// Por enquanto, apenas simula processamento
-			log.Printf("🔄 Processando conteúdo ID: %s...", payload.ID)
-			time.Sleep(2 * time.Second)
-			log.Printf("✅ Processamento do conteúdo ID: %s concluído (simulado)", payload.ID)
+			// Processar o conteúdo
+			if err := processContent(ctx, redisClient, queries, payload); err != nil {
+				log.Printf("❌ Erro ao processar conteúdo ID: %s - %v", payload.ID, err)
+				// Marcar como erro no banco
+				updateContentStatus(ctx, queries, payload.ID, "ERROR")
+				notifyContentUpdate(ctx, redisClient, payload.ID, "ERROR")
+			}
 		}
 	}
 }
-
 
 func processContent(ctx context.Context, redisClient *redis.Client, queries *db.Queries, payload EnrichmentPayload) error {                                  
     log.Printf("🔄 Iniciando processamento do conteúdo ID: %s", payload.ID)                                                                                  
@@ -136,5 +155,4 @@ func notifyContentUpdate(ctx context.Context, redisClient *redis.Client, content
     }                                                                                                                                                        
                                                                                                                                                              
     return redisClient.Publish(ctx, contentUpdatesChannel, eventBytes).Err()                                                                                 
-}                                                                                                                                                            
-           
+}
