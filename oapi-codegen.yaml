@@ -1,0 +1,7 @@
+output: internal/api/api.gen.go
+package: api
+generate:
+  gin: true
+  models: true
+  embedded-spec: true
+input: api/openapi.yaml
