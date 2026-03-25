@@ -175,6 +175,65 @@ func (q *Queries) GetContents(ctx context.Context, arg GetContentsParams) ([]Get
 	return items, nil
 }
 
+const listContentsWithMetadata = `-- name: ListContentsWithMetadata :many
+SELECT
+    c.id,
+    c.url,
+    c.type,
+    c.created_at,
+    c.status,
+    m.title,
+    m.description,
+    m.provider,
+    m.thumbnail_path
+FROM contents c
+INNER JOIN metadata m ON m.content_id = c.id
+WHERE c.status = 'COMPLETED'
+ORDER BY c.created_at DESC
+`
+
+type ListContentsWithMetadataRow struct {
+	ID            string
+	Url           string
+	Type          pgtype.Text
+	CreatedAt     pgtype.Timestamptz
+	Status        string
+	Title         pgtype.Text
+	Description   pgtype.Text
+	Provider      pgtype.Text
+	ThumbnailPath pgtype.Text
+}
+
+func (q *Queries) ListContentsWithMetadata(ctx context.Context) ([]ListContentsWithMetadataRow, error) {
+	rows, err := q.db.Query(ctx, listContentsWithMetadata)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListContentsWithMetadataRow
+	for rows.Next() {
+		var i ListContentsWithMetadataRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Url,
+			&i.Type,
+			&i.CreatedAt,
+			&i.Status,
+			&i.Title,
+			&i.Description,
+			&i.Provider,
+			&i.ThumbnailPath,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateContentStatus = `-- name: UpdateContentStatus :exec
 UPDATE contents
 SET status = $2, 

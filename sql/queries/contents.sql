@@ -55,3 +55,19 @@ UPDATE contents
 SET status = $2, 
     updated_at = NOW()
 WHERE id = $1;
+
+-- name: ListContentsWithMetadata :many
+SELECT
+    c.id,
+    c.url,
+    c.type,
+    c.created_at,
+    c.status,
+    m.title,
+    m.description,
+    m.provider,
+    m.thumbnail_path
+FROM contents c
+INNER JOIN metadata m ON m.content_id = c.id
+WHERE c.status = 'COMPLETED'
+ORDER BY c.created_at DESC;

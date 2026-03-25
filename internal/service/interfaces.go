@@ -11,4 +11,5 @@ type ContentServiceInterface interface {
 	GetContents(ctx context.Context, params GetContentsParams) ([]db.GetContentsRow, error)
 	UpsertNote(ctx context.Context, params UpdateNoteParams) (db.Note, error)
 	Delete(ctx context.Context, contentID string) error
+	Search(query, filter string, limit, offset int64) (*SearchResponse, error)
 }

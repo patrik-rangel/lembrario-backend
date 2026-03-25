@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/redis/go-redis/v9"
 	"lembrario-backend/internal/db"
+	"lembrario-backend/internal/search"
 )
 
 const (
@@ -21,6 +22,7 @@ const (
 type EnrichmentPayload struct {
 	ID  string `json:"id"`
 	URL string `json:"url"`
+	Type string `json:"type"`
 }
 
 // ContentUpdateEvent representa o evento de atualização de conteúdo
@@ -41,7 +43,7 @@ type ScrapedData struct {
 }
 
 // StartWorker inicia o consumidor da fila de enriquecimento com graceful shutdown.
-func StartWorker(ctx context.Context, redisClient *redis.Client, queries *db.Queries) {
+func StartWorker(ctx context.Context, redisClient *redis.Client, queries *db.Queries, searchClient *search.Client) {
 	log.Printf("Worker iniciado, escutando a fila: %s", enrichmentQueue)
 
 	for {
@@ -74,13 +76,13 @@ func StartWorker(ctx context.Context, redisClient *redis.Client, queries *db.Que
 			log.Printf("📥 Mensagem recebida - ID: %s, URL: %s", payload.ID, payload.URL)
 
 			// Processar o conteúdo (não retornamos erro aqui pois já tratamos internamente)
-			processContent(ctx, redisClient, queries, payload)
+			processContent(ctx, redisClient, queries, payload, searchClient)
 		}
 	}
 }
 
 // processContent processa um conteúdo individual com tratamento completo de erro
-func processContent(ctx context.Context, redisClient *redis.Client, queries *db.Queries, payload EnrichmentPayload) {
+func processContent(ctx context.Context, redisClient *redis.Client, queries *db.Queries, payload EnrichmentPayload, searchClient *search.Client) {
 	log.Printf("🔄 Iniciando processamento do conteúdo ID: %s", payload.ID)
 
 	// 1. Fazer scraping da URL
@@ -109,6 +111,13 @@ func processContent(ctx context.Context, redisClient *redis.Client, queries *db.
 		handleError(ctx, redisClient, queries, payload.ID, "Erro ao salvar metadados")
 		return
 	}
+
+	if err := indexContent(searchClient, payload, scrapedData); err != nil {
+        // Não é fatal — o conteúdo já foi salvo no banco
+        log.Printf("⚠️ Erro ao indexar conteúdo %s no Meilisearch: %v", payload.ID, err)
+    } else {
+        log.Printf("🔍 Conteúdo %s indexado no Meilisearch", payload.ID)
+    }
 
 	// 3. Atualizar status para COMPLETED
 	err = updateContentStatus(ctx, queries, payload.ID, "COMPLETED")
@@ -207,4 +216,17 @@ func notifyContentUpdate(ctx context.Context, redisClient *redis.Client, content
 
 	log.Printf("📢 Notificação enviada - ID: %s, Status: %s", contentID, status)
 	return nil
+}
+
+func indexContent(searchClient *search.Client, payload EnrichmentPayload, data *ScrapedData) error {
+    return searchClient.IndexContent(search.ContentDocument{
+        ID:          payload.ID,
+        Title:       data.Title,
+        Description: data.Description,
+        URL:         payload.URL,
+        Type:        payload.Type, // precisa adicionar Type no EnrichmentPayload
+        Provider:    data.Provider,
+        AuthorName:  data.AuthorName,
+        CreatedAt:   time.Now(),
+    })
 }

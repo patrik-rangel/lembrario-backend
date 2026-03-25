@@ -1,45 +1,29 @@
-🏗️ Plano de Implementação: Worker de Enriquecimento
-Objetivo: Criar um binário independente que consome a enrichment_queue, extrai metadados da web e notifica o backend via Pub/Sub.
+🏗️ Fase 1: Infraestrutura e Configuração
+Objetivo: Subir o motor de busca e preparar as credenciais.
 
-📂 Fase 1: Estrutura e Contrato (SQLC)
-Objetivo: Preparar o banco para receber os dados extraídos pelo Worker.
+[x] Docker Compose: Adicionar o serviço meilisearch ao docker-compose.yml.
 
-[x] Queries SQLC: Adicionar em internal/db/queries.sql:
+[x] Variáveis de Ambiente: Adicionar MEILI_HOST e MEILI_MASTER_KEY ao .env e .env.example.
 
-UpsertMetadata: Insere ou atualiza o título, descrição, provider, etc.
+[x] Client Go: Instalar o SDK oficial: go get github.com/meilisearch/meilisearch-go.
 
-UpdateContentStatus: Muda de PENDING para COMPLETED ou ERROR.
+🔄 Fase 2: Indexação no Worker (O "Push")
+Objetivo: Garantir que, assim que o Worker terminar o scraping, o dado vá para o índice.
 
-[x] Geração: Rodar sqlc generate.
+[ ] Internal Package: Criar internal/search/meilisearch.go para centralizar a conexão e as operações de indexação.
 
-🔄 Fase 2: O Loop de Consumo (Consumer)
-Objetivo: Tirar as mensagens do Redis e iniciar o processamento.
+[ ] Worker Integration: No final do processamento do Worker (após o UpsertMetadata), enviar o "Documento Rico" para o Meilisearch.
 
-[x] Worker Entrypoint: Criar cmd/worker/main.go (reutilizando o db.NewDBPool e a fiação do main.go da API).
+[ ] Document Schema: Definir a estrutura do documento (ID, Title, Description, URL, Type, CreatedAt).
 
-[x] Consumer Loop: Implementar um loop infinito usando BRPOP (bloqueante) na enrichment_queue.
+🔍 Fase 3: Endpoint de Busca na API
+Objetivo: Expor a funcionalidade para o Frontend.
 
-[x] Graceful Shutdown: Garantir que o worker termine de processar a tarefa atual antes de fechar ao receber um SIGINT/SIGTERM.
+[ ] Service Layer: Adicionar o método Search(query string) no ContentService.
 
-🌐 Fase 3: Engine de Scraping (A "Mágica")
-Objetivo: Ir até a internet e buscar as informações.
+[ ] Handler API: Implementar o GET /search?q=termo no api/handler.go.
 
-[x] Scraper Service: Criar internal/worker/scraper.go.
+[ ] Search Options: Configurar AttributesToHighlight para que o frontend possa mostrar onde o termo foi encontrado.
 
-[x] Extração Básica: Usar net/http e goquery para extrair <title> e <meta name="description">.
-
-[x] Identificação de Provider: Lógica simples para detectar se é YouTube (para futura integração com API de Transcrições).
-
-📢 Fase 4: Notificação e Persistência
-Objetivo: Salvar os dados e avisar o Frontend via SSE.
-
-[ ] Update DB: Salvar os metadados e atualizar o status do conteúdo para COMPLETED.
-
-[ ] Notify Pub/Sub: Publicar no canal content_updates do Redis o payload: {"id": "ULID", "status": "COMPLETED"}.
-
-[ ] Trigger SSE: Validar se o backend (que já está rodando) recebe essa mensagem e repassa para o curl -i -N.
-
-⚠️ Fase 5: Tratamento de Erro (Sad Path)
-Objetivo: Implementar a estratégia de retry conforme o diagrama.
-
-[ ] Retry Logic: Se o scraping falhar, incrementar um contador e devolver para a fila (com delay) ou mover para uma dead_letter_queue e marcar como ERROR.
+🧹 Fase 4: Sincronização e Ajustes (Opcional)
+[ ] Backfill Script: (Opcional) Um script simples para indexar os links que você já salvou no banco antes de ter o Meilisearch.

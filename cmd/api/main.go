@@ -14,6 +14,7 @@ import (
 	"lembrario-backend/internal/config"
 	"lembrario-backend/internal/db"
 	"lembrario-backend/internal/service"
+	"lembrario-backend/internal/search"
 )
 
 func main() {
@@ -27,6 +28,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Erro ao carregar configuração: %v", err)
 	}
+
+	searchClient, err := search.New()
+	if err != nil {
+		log.Fatalf("Erro ao conectar Meilisearch: %v", err)
+	}
+	log.Println("Conexão com Meilisearch estabelecida")
+
 
 	// 3. Conectar ao banco de dados
 	dbPool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
@@ -59,7 +67,7 @@ func main() {
 	queries := db.New(dbPool)
 
 	// 6. Criar services
-	contentService := service.NewContentService(queries, redisClient)
+	contentService := service.NewContentService(queries, redisClient, searchClient)
 
 	// 7. Criar handlers
 	contentHandler := api.NewContentHandler(contentService)

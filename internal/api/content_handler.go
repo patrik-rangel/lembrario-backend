@@ -3,6 +3,8 @@ package api
 import (
 	"net/http"
 	"time"
+	"strconv"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"lembrario-backend/internal/service"
@@ -244,4 +246,34 @@ func (h *ContentHandler) DeleteContent(c *gin.Context, id string) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func (h *ContentHandler) GetSearch(c *gin.Context) {
+    query := c.Query("q")
+
+    limit := int64(20)
+    if l := c.Query("limit"); l != "" {
+        if parsed, err := strconv.ParseInt(l, 10, 64); err == nil && parsed > 0 && parsed <= 100 {
+            limit = parsed
+        }
+    }
+
+    offset := int64(0)
+    if o := c.Query("offset"); o != "" {
+        if parsed, err := strconv.ParseInt(o, 10, 64); err == nil && parsed >= 0 {
+            offset = parsed
+        }
+    }
+
+    // Filtro opcional: ?filter=type = video
+    filter := c.Query("filter")
+
+    result, err := h.contentService.Search(query, filter, limit, offset)
+    if err != nil {
+        fmt.Printf("Erro na busca: %v", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao realizar busca"})
+        return
+    }
+
+    c.JSON(http.StatusOK, result)
 }

@@ -45,7 +45,7 @@ func (s *apiServer) DeleteContentsId(c *gin.Context, id string) {
 
 // Método stub para o endpoint de busca que ainda não está implementado
 func (s *apiServer) GetSearch(c *gin.Context, params GetSearchParams) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "Endpoint GET /search não implementado"})
+	s.contentHandler.GetSearch(c)
 }
 
 // SetupRouter configura as rotas da API
