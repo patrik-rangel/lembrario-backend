@@ -6,69 +6,71 @@ Este documento descreve as etapas para implementar o fluxo completo de ingestão
 
 ---
 
-## 🏗️ Fase 1: Persistência e Contrato (SQLC & ULID)
+## 🏗️ Fase 1: Persistência e Contrato (SQLC & ULID) ✅ **COMPLETA**
 
 **Objetivo:** Preparar o banco de dados para receber os novos registros.
 
-- [ ] **Queries SQLC:** Adicionar em `internal/db/queries.sql` a instrução para criar conteúdo  
+- [x] **Queries SQLC:** Adicionar em `internal/db/queries.sql` a instrução para criar conteúdo  
   - **Query:** `CreateContent` (`INSERT INTO contents ... RETURNING *`)  
   - **Campos:** `id` (ULID), `url`, `type`, `status` (default `'PENDING'`)
 
-- [ ] **Geração de Código:** Rodar `sqlc generate` para atualizar as interfaces do banco
+- [x] **Geração de Código:** Rodar `sqlc generate` para atualizar as interfaces do banco
 
-- [ ] **Validação de ID:** Garantir que o pacote `pkg/id` está pronto para gerar os ULIDs necessários para a chave primária
+- [x] **Validação de ID:** Garantir que o pacote `pkg/id` está pronto para gerar os ULIDs necessários para a chave primária
 
 ---
 
-## 🚀 Fase 2: Ingestão Inicial (API First)
+## 🚀 Fase 2: Ingestão Inicial (API First) ✅ **COMPLETA**
 
 **Objetivo:** Receber a URL e responder rapidamente ao usuário (**Status 202**).
 
-- [ ] **ContentHandler (PostContents):**
+- [x] **ContentHandler (PostContents):**
   - Realizar o `ShouldBindJSON` para a struct `CreateContentRequest`
   - Chamar o método `Create` do `ContentService`
   - Retornar `202 Accepted` com o ID gerado
 
-- [ ] **ContentService (Create):**
+- [x] **ContentService (Create):**
   - Gerar o ULID
   - Persistir no banco via SQLC com status `PENDING`
-  - Próximo passo: Integrar com a fila do Redis (Fase 3)
+  - Integração com a fila do Redis implementada
 
 ---
 
-## 📨 Fase 3: Mensageria e Fila (Redis)
+## 📨 Fase 3: Mensageria e Fila (Redis) ✅ **COMPLETA**
 
 **Objetivo:** Despachar a tarefa para o processamento em background.
 
-- [ ] **Redis Client:** Configurar o produtor no pacote `internal/queue`
+- [x] **Redis Client:** Configurado no pacote `internal/queue`
 
-- [ ] **Producer Logic:**  
+- [x] **Producer Logic:**  
   No `ContentService`, após salvar no banco, disparar um `LPUSH` para a chave `enrichment_queue` com o JSON:
   ```json
   { "id": "...", "url": "..." }
 ````
 
-* [ ] **Fallback de Erro:**
-  Se a fila falhar:
-
-  * Atualizar o status no banco para `ERROR`, **ou**
-  * Reverter a transação
+* [x] **Fallback de Erro:**
+  Se a fila falhar, apenas loga o erro sem reverter a criação do conteúdo
 
 ---
 
-## 📡 Fase 4: Feedback em Tempo Real (SSE)
+## 📡 Fase 4: Feedback em Tempo Real (SSE) ✅ **COMPLETA**
 
 **Objetivo:** Manter o Frontend atualizado sem refresh.
 
-* [ ] **SSE Handler (GetEvents):**
+* [x] **SSE Handler (GetEvents):**
 
   * Implementar o loop de stream (`text/event-stream`)
   * Realizar o `SUBSCRIBE` no canal Redis `content_updates`
   * Enviar eventos ao frontend quando o status mudar (`COMPLETED` / `ERROR`)
+  * Ping periódico para manter conexão viva
+  * Tratamento adequado de desconexão do cliente
+
+* [x] **Publisher Helper:**
+  Função `PublishContentUpdate` para ser usada pelo worker de enriquecimento
 
 ---
 
-## 📝 Fase 5: Gestão de Notas (CRUD 1:1)
+## 📝 Fase 5: Gestão de Notas (CRUD 1:1) 🔄 **PRÓXIMA**
 
 **Objetivo:** Permitir anotações em Markdown vinculadas ao conteúdo.
 
@@ -82,7 +84,7 @@ Este documento descreve as etapas para implementar o fluxo completo de ingestão
 
 ---
 
-## 🧹 Fase 6: Exclusão (Cleanup Total)
+## 🧹 Fase 6: Exclusão (Cleanup Total) 🔄 **FUTURA**
 
 **Objetivo:** Não deixar lixo no sistema.
 
@@ -91,5 +93,17 @@ Este documento descreve as etapas para implementar o fluxo completo de ingestão
   * Remover do Postgres (Cascade)
   * Remover do índice do Meilisearch
   * (Futuro) Remover assets físicos do storage
+
+---
+
+## 🎯 Status Atual: **Fase 4 Completa!**
+
+O sistema agora possui:
+1. ✅ Ingestão de conteúdo com resposta `202 Accepted`
+2. ✅ Persistência no banco com status `PENDING`
+3. ✅ Enfileiramento no Redis para processamento assíncrono
+4. ✅ **Stream SSE para atualizações em tempo real**
+
+**Próximo passo:** Implementar a Fase 5 (Gestão de Notas) ou criar o worker de enriquecimento que consumirá a fila e publicará os eventos SSE.
 
 ```

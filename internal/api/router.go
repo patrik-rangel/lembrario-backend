@@ -15,12 +15,18 @@ import (
 // apiServer implementa a interface ServerInterface gerada pelo oapi-codegen
 type apiServer struct {
 	contentHandler *ContentHandler
+	sseHandler     *SSEHandler
 	// Outros handlers podem ser adicionados aqui conforme necessário
 }
 
 // PostContents implementa o endpoint POST /contents, delegando para o ContentHandler
 func (s *apiServer) PostContents(c *gin.Context) {
 	s.contentHandler.CreateContent(c)
+}
+
+// GetEvents implementa o endpoint GET /events, delegando para o SSEHandler
+func (s *apiServer) GetEvents(c *gin.Context) {
+	s.sseHandler.GetEvents(c)
 }
 
 // Métodos stub para os outros endpoints da ServerInterface que ainda não estão implementados
@@ -35,9 +41,6 @@ func (s *apiServer) GetContentsId(c *gin.Context, id string) {
 }
 func (s *apiServer) UpdateNote(c *gin.Context, id string) {
 	c.JSON(http.StatusNotImplemented, gin.H{"error": "Endpoint PATCH /contents/{id} não implementado"})
-}
-func (s *apiServer) GetEvents(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "Endpoint GET /events não implementado"})
 }
 func (s *apiServer) GetSearch(c *gin.Context, params GetSearchParams) {
 	c.JSON(http.StatusNotImplemented, gin.H{"error": "Endpoint GET /search não implementado"})
@@ -66,6 +69,7 @@ func SetupRouter() *gin.Engine {
 
 	// Inicializa os Handlers
 	contentHandler := NewContentHandler(contentService)
+	sseHandler := NewSSEHandler(redisClient)
 
 	// Rota de saúde simples (mantida separada pois geralmente não está na especificação OpenAPI)
 	router.GET("/health", func(c *gin.Context) {
@@ -75,6 +79,7 @@ func SetupRouter() *gin.Engine {
 	// Inicializa o servidor da API com os handlers
 	server := &apiServer{
 		contentHandler: contentHandler,
+		sseHandler:     sseHandler,
 	}
 
 	// Registra todas as rotas da API usando a função gerada pelo oapi-codegen
