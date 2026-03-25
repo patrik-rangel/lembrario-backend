@@ -15,11 +15,11 @@ UpdateContentStatus: Muda de PENDING para COMPLETED ou ERROR.
 🔄 Fase 2: O Loop de Consumo (Consumer)
 Objetivo: Tirar as mensagens do Redis e iniciar o processamento.
 
-[ ] Worker Entrypoint: Criar cmd/worker/main.go (reutilizando o db.NewDBPool e a fiação do main.go da API).
+[x] Worker Entrypoint: Criar cmd/worker/main.go (reutilizando o db.NewDBPool e a fiação do main.go da API).
 
-[ ] Consumer Loop: Implementar um loop infinito usando BRPOP (bloqueante) na enrichment_queue.
+[x] Consumer Loop: Implementar um loop infinito usando BRPOP (bloqueante) na enrichment_queue.
 
-[ ] Graceful Shutdown: Garantir que o worker termine de processar a tarefa atual antes de fechar ao receber um SIGINT/SIGTERM.
+[x] Graceful Shutdown: Garantir que o worker termine de processar a tarefa atual antes de fechar ao receber um SIGINT/SIGTERM.
 
 🌐 Fase 3: Engine de Scraping (A "Mágica")
 Objetivo: Ir até a internet e buscar as informações.
