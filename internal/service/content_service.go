@@ -17,12 +17,12 @@ import (
 const enrichmentQueue = "enrichment_queue"
 
 type ContentService struct {
-	queries      *db.Queries
+	queries      db.Querier
 	redis        *redis.Client
 	searchClient *search.Client
 }
 
-func NewContentService(queries *db.Queries, redisClient *redis.Client, search *search.Client) *ContentService {
+func NewContentService(queries db.Querier, redisClient *redis.Client, search *search.Client) *ContentService {
 	return &ContentService{
 		queries:      queries,
 		redis:        redisClient,

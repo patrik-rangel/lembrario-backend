@@ -23,7 +23,7 @@ func getEnvOrDefault(key, fallback string) string {
 
 // downloadThumbnail baixa a imagem de uma URL e salva em disco.
 // Retorna o path relativo salvo, ou string vazia se não houver URL.
-func downloadThumbnail(ctx context.Context, contentID, imageURL string) (string, error) {
+func DownloadThumbnail(ctx context.Context, contentID, imageURL string) (string, error) {
 	if imageURL == "" {
 		return "", nil
 	}
@@ -49,7 +49,7 @@ func downloadThumbnail(ctx context.Context, contentID, imageURL string) (string,
 		return "", fmt.Errorf("thumbnail retornou status %d", resp.StatusCode)
 	}
 
-	ext := inferExtension(resp.Header.Get("Content-Type"), imageURL)
+	ext := InferExtension(resp.Header.Get("Content-Type"), imageURL)
 	filename := fmt.Sprintf("%s%s", contentID, ext)
 	destPath := filepath.Join(thumbnailDir, filename)
 
@@ -71,7 +71,7 @@ func downloadThumbnail(ctx context.Context, contentID, imageURL string) (string,
 }
 
 // inferExtension tenta descobrir a extensão pelo Content-Type ou pela URL.
-func inferExtension(contentType, imageURL string) string {
+func InferExtension(contentType, imageURL string) string {
 	switch {
 	case strings.Contains(contentType, "jpeg"), strings.Contains(contentType, "jpg"):
 		return ".jpg"

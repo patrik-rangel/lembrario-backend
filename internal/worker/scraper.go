@@ -15,6 +15,11 @@ import (
 	"golang.org/x/net/html"
 )
 
+var (
+	youtubeAPIBaseURL = "https://www.googleapis.com/youtube/v3/videos"
+	githubAPIBaseURL  = "https://api.github.com"
+)
+
 func ScrapeURL(ctx context.Context, targetURL string) (*ScrapedData, error) {
 	parsed, err := url.Parse(targetURL)
 	if err != nil {
@@ -49,8 +54,8 @@ func scrapeYouTube(ctx context.Context, parsed *url.URL) (*ScrapedData, error) {
 	}
 
 	apiURL := fmt.Sprintf(
-		"https://www.googleapis.com/youtube/v3/videos?id=%s&part=snippet,contentDetails&key=%s",
-		videoID, apiKey,
+		"%s?id=%s&part=snippet,contentDetails&key=%s",
+		youtubeAPIBaseURL, videoID, apiKey,
 	)
 
 	client := &http.Client{Timeout: 10 * time.Second}
@@ -216,9 +221,9 @@ func scrapeGitHub(ctx context.Context, parsed *url.URL) (*ScrapedData, error) {
 	var apiURL string
 	switch len(parts) {
 	case 1:
-		apiURL = fmt.Sprintf("https://api.github.com/users/%s", parts[0])
+		apiURL = fmt.Sprintf("%s/users/%s", githubAPIBaseURL, parts[0])
 	case 2:
-		apiURL = fmt.Sprintf("https://api.github.com/repos/%s/%s", parts[0], parts[1])
+		apiURL = fmt.Sprintf("%s/repos/%s/%s", githubAPIBaseURL, parts[0], parts[1])
 	default:
 		return scrapeGeneric(ctx, parsed.String())
 	}

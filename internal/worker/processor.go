@@ -12,6 +12,10 @@ import (
 	"lembrario-backend/internal/db"
 	"lembrario-backend/internal/search"
 )
+var (
+    ScrapeURLFunc        = ScrapeURL
+    DownloadThumbnailFunc = DownloadThumbnail
+)
 
 const (
 	enrichmentQueue       = "enrichment_queue"
@@ -43,7 +47,7 @@ type ScrapedData struct {
 }
 
 // StartWorker inicia o consumidor da fila de enriquecimento com graceful shutdown.
-func StartWorker(ctx context.Context, redisClient *redis.Client, queries *db.Queries, searchClient *search.Client) {
+func StartWorker(ctx context.Context, redisClient *redis.Client, queries db.Querier, searchClient *search.Client) {
 	log.Printf("Worker iniciado, escutando a fila: %s", enrichmentQueue)
 
 	for {
@@ -76,17 +80,17 @@ func StartWorker(ctx context.Context, redisClient *redis.Client, queries *db.Que
 			log.Printf("📥 Mensagem recebida - ID: %s, URL: %s", payload.ID, payload.URL)
 
 			// Processar o conteúdo (não retornamos erro aqui pois já tratamos internamente)
-			processContent(ctx, redisClient, queries, payload, searchClient)
+			ProcessContent(ctx, redisClient, queries, payload, searchClient)
 		}
 	}
 }
 
 // processContent processa um conteúdo individual com tratamento completo de erro
-func processContent(ctx context.Context, redisClient *redis.Client, queries *db.Queries, payload EnrichmentPayload, searchClient *search.Client) {
+func ProcessContent(ctx context.Context, redisClient *redis.Client, queries db.Querier, payload EnrichmentPayload, searchClient *search.Client) {
 	log.Printf("🔄 Iniciando processamento do conteúdo ID: %s", payload.ID)
 
 	// 1. Fazer scraping da URL
-	scrapedData, err := ScrapeURL(ctx, payload.URL)
+	scrapedData, err := ScrapeURLFunc(ctx, payload.URL)
 	if err != nil {
 		log.Printf("❌ Erro no scraping para ID %s: %v", payload.ID, err)
 		// Marcar como ERROR e notificar
@@ -96,7 +100,7 @@ func processContent(ctx context.Context, redisClient *redis.Client, queries *db.
 
 	log.Printf("📄 Dados extraídos - Título: %s, Provider: %s", scrapedData.Title, scrapedData.Provider)
 
-	thumbnailPath, err := downloadThumbnail(ctx, payload.ID, scrapedData.ThumbnailURL)
+	thumbnailPath, err := DownloadThumbnailFunc(ctx, payload.ID, scrapedData.ThumbnailURL)
 	if err != nil {
 		log.Printf("⚠️ Erro ao baixar thumbnail para ID %s: %v (continuando)", payload.ID, err)
 		thumbnailPath = ""
@@ -139,7 +143,7 @@ func processContent(ctx context.Context, redisClient *redis.Client, queries *db.
 }
 
 // handleError trata erros marcando o conteúdo como ERROR e notificando
-func handleError(ctx context.Context, redisClient *redis.Client, queries *db.Queries, contentID, reason string) {
+func handleError(ctx context.Context, redisClient *redis.Client, queries db.Querier, contentID, reason string) {
 	// Tentar marcar como ERROR no banco
 	if err := updateContentStatus(ctx, queries, contentID, "ERROR"); err != nil {
 		log.Printf("❌ Falha ao marcar conteúdo %s como ERROR: %v", contentID, err)
@@ -154,7 +158,7 @@ func handleError(ctx context.Context, redisClient *redis.Client, queries *db.Que
 }
 
 // saveMetadata salva os metadados extraídos no banco de dados
-func saveMetadata(ctx context.Context, queries *db.Queries, contentID string, data *ScrapedData) error {
+func saveMetadata(ctx context.Context, queries db.Querier, contentID string, data *ScrapedData) error {
 	rawJson, _ := json.Marshal(map[string]string{
 		"source":        "scraper_v1",
 		"fetched_at":    time.Now().String(),
@@ -181,7 +185,7 @@ func saveMetadata(ctx context.Context, queries *db.Queries, contentID string, da
 }
 
 // updateContentStatus atualiza o status de um conteúdo
-func updateContentStatus(ctx context.Context, queries *db.Queries, contentID, status string) error {
+func updateContentStatus(ctx context.Context, queries db.Querier, contentID, status string) error {
 	params := db.UpdateContentStatusParams{
 		ID:     contentID,
 		Status: status,
@@ -219,14 +223,18 @@ func notifyContentUpdate(ctx context.Context, redisClient *redis.Client, content
 }
 
 func indexContent(searchClient *search.Client, payload EnrichmentPayload, data *ScrapedData) error {
-	return searchClient.IndexContent(search.ContentDocument{
-		ID:          payload.ID,
-		Title:       data.Title,
-		Description: data.Description,
-		URL:         payload.URL,
-		Type:        payload.Type, // precisa adicionar Type no EnrichmentPayload
-		Provider:    data.Provider,
-		AuthorName:  data.AuthorName,
-		CreatedAt:   time.Now(),
-	})
+    if searchClient == nil {
+        return nil 
+    }
+
+    return searchClient.IndexContent(search.ContentDocument{
+        ID:          payload.ID,
+        Title:       data.Title,
+        Description: data.Description,
+        URL:         payload.URL,
+        Type:        payload.Type,
+        Provider:    data.Provider,
+        AuthorName:  data.AuthorName,
+        CreatedAt:   time.Now(),
+    })
 }
