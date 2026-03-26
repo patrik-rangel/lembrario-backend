@@ -41,25 +41,6 @@ type Note struct {
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
 
-// type CreateContentRequest struct {
-// 	Url  string `json:"url" binding:"required"`
-// 	Type string `json:"type" binding:"required"`
-// }
-
-// type CreateContentResponse struct {
-// 	Id  *string `json:"id,omitempty"`
-// 	Url *string `json:"url,omitempty"`
-// }
-
-// type GetContentsParams struct {
-// 	Limit  *int `form:"limit"`
-// 	Offset *int `form:"offset"`
-// }
-
-// type UpdateNoteRequest struct {
-// 	Body string `json:"body" binding:"required"`
-// }
-
 func NewContentHandler(contentService service.ContentServiceInterface) *ContentHandler {
 	return &ContentHandler{
 		contentService: contentService,
@@ -82,6 +63,11 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	if req.Url == "" || req.Type == "" {
+    c.JSON(http.StatusBadRequest, gin.H{"error": "url e type são obrigatórios"})
+    return
 	}
 
 	params := service.CreateContentParams{
@@ -215,6 +201,11 @@ func (h *ContentHandler) UpdateNote(c *gin.Context, id string) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+    if req.Body == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "body é obrigatório"})
+        return
+    }
 
 	params := service.UpdateNoteParams{
 		ContentID: id,
