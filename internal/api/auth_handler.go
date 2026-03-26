@@ -1,9 +1,9 @@
 package api
 
 import (
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
-	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {

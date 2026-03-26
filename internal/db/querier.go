@@ -9,13 +9,13 @@ import (
 )
 
 type Querier interface {
-    CreateContent(ctx context.Context, arg CreateContentParams) (Content, error)
-    DeleteContent(ctx context.Context, id string) error // <--- O Mock precisa desse!
-    GetContentByID(ctx context.Context, id string) (GetContentByIDRow, error)
-    GetContents(ctx context.Context, arg GetContentsParams) ([]GetContentsRow, error)
-    UpsertMetadata(ctx context.Context, arg UpsertMetadataParams) (Metadata, error)
-    UpdateContentStatus(ctx context.Context, arg UpdateContentStatusParams) error
-    UpsertNote(ctx context.Context, arg UpsertNoteParams) (Note, error)
+	CreateContent(ctx context.Context, arg CreateContentParams) (Content, error)
+	DeleteContent(ctx context.Context, id string) error // <--- O Mock precisa desse!
+	GetContentByID(ctx context.Context, id string) (GetContentByIDRow, error)
+	GetContents(ctx context.Context, arg GetContentsParams) ([]GetContentsRow, error)
+	UpsertMetadata(ctx context.Context, arg UpsertMetadataParams) (Metadata, error)
+	UpdateContentStatus(ctx context.Context, arg UpdateContentStatusParams) error
+	UpsertNote(ctx context.Context, arg UpsertNoteParams) (Note, error)
 }
 
 var _ Querier = (*Queries)(nil)

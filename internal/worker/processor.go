@@ -12,9 +12,10 @@ import (
 	"lembrario-backend/internal/db"
 	"lembrario-backend/internal/search"
 )
+
 var (
-    ScrapeURLFunc        = ScrapeURL
-    DownloadThumbnailFunc = DownloadThumbnail
+	ScrapeURLFunc         = ScrapeURL
+	DownloadThumbnailFunc = DownloadThumbnail
 )
 
 const (
@@ -223,18 +224,18 @@ func notifyContentUpdate(ctx context.Context, redisClient *redis.Client, content
 }
 
 func indexContent(searchClient *search.Client, payload EnrichmentPayload, data *ScrapedData) error {
-    if searchClient == nil {
-        return nil 
-    }
+	if searchClient == nil {
+		return nil
+	}
 
-    return searchClient.IndexContent(search.ContentDocument{
-        ID:          payload.ID,
-        Title:       data.Title,
-        Description: data.Description,
-        URL:         payload.URL,
-        Type:        payload.Type,
-        Provider:    data.Provider,
-        AuthorName:  data.AuthorName,
-        CreatedAt:   time.Now(),
-    })
+	return searchClient.IndexContent(search.ContentDocument{
+		ID:          payload.ID,
+		Title:       data.Title,
+		Description: data.Description,
+		URL:         payload.URL,
+		Type:        payload.Type,
+		Provider:    data.Provider,
+		AuthorName:  data.AuthorName,
+		CreatedAt:   time.Now(),
+	})
 }

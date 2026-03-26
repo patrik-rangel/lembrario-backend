@@ -1,16 +1,16 @@
 package api
 
 import (
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
-	"github.com/gin-gonic/gin"
 )
 
 func JWTMiddleware(authService *AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. Exceções: Rotas que NÃO precisam de token
 		path := c.Request.URL.Path
-		if path == "/login" || path == "/health" {
+		if path == "/login" || path == "/health" || strings.HasSuffix(path, "/health") {
 			c.Next()
 			return
 		}

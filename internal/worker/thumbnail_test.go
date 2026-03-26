@@ -34,7 +34,7 @@ func TestInferExtension(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Nota: Como inferExtension não é exportada, você pode testar 
+			// Nota: Como inferExtension não é exportada, você pode testar
 			// via downloadThumbnail ou torná-la exportada (InferExtension)
 			got := worker.InferExtension(tt.contentType, tt.url)
 			assert.Equal(t, tt.want, got)
@@ -45,8 +45,8 @@ func TestInferExtension(t *testing.T) {
 func TestDownloadThumbnail(t *testing.T) {
 	// Setup: Criar diretório temporário para não sujar o sistema
 	tempDir := t.TempDir()
-	
-	// Precisamos "injetar" esse diretório no worker. 
+
+	// Precisamos "injetar" esse diretório no worker.
 	// Como a variável thumbnailDir é global no pacote, vamos setar o ENV:
 	os.Setenv("THUMBNAIL_DIR", tempDir)
 

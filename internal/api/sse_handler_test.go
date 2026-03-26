@@ -17,18 +17,26 @@ import (
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// func performRequest(r *gin.Engine, method, path string) *httptest.ResponseRecorder {
+//     w := httptest.NewRecorder()
+//     req := httptest.NewRequest(method, path, nil)
+//     req.Header.Set("Authorization", "Bearer "+testToken)
+//     r.ServeHTTP(w, req)
+//     return w
+// }
+
 // setupSSETest retorna o roteador e o cliente redis para podermos publicar eventos
 func setupSSETest(t *testing.T) (*gin.Engine, *redis.Client) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
-	
+
 	mr := miniredis.RunT(t)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	
+
 	// Mock simples pois o SSEHandler não depende do service
 	contentHandler := api.NewContentHandler(&mockContentService{})
 	sseHandler := api.NewSSEHandler(rdb)
-	
+
 	return api.SetupRouter(contentHandler, sseHandler), rdb
 }
 
@@ -42,8 +50,9 @@ func TestEventsEndpointHeadersSse(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/events", nil)
+	req.Header.Set("Authorization", "Bearer "+testToken)
 	req = req.WithContext(ctx)
-	
+
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, "text/event-stream", w.Header().Get("Content-Type"))
@@ -62,6 +71,7 @@ func TestEventsStreamingFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/events", nil)
+	req.Header.Set("Authorization", "Bearer "+testToken)
 	req = req.WithContext(ctx)
 
 	// Canal para avisar que a requisição terminou

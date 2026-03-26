@@ -1,8 +1,8 @@
 package api
 
 import (
-
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 // apiServer implementa a interface ServerInterface gerada pelo oapi-codegen
@@ -14,7 +14,7 @@ type apiServer struct {
 }
 
 func (s *apiServer) PostLogin(c *gin.Context) {
-    s.authHandler.Login(c)
+	s.authHandler.Login(c)
 }
 
 // PostContents implementa o endpoint POST /contents, delegando para o ContentHandler
@@ -52,14 +52,18 @@ func (s *apiServer) GetSearch(c *gin.Context, params GetSearchParams) {
 	s.contentHandler.GetSearch(c)
 }
 
-// SetupRouter configura as rotas da API
 func SetupRouter(contentHandler *ContentHandler, sseHandler *SSEHandler) *gin.Engine {
 	router := gin.Default()
+
+	// 1. Rota de Saúde PÚBLICA (registrada antes do middleware de JWT)
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "UP"})
+	})
 
 	authService := NewAuthService()
 	authHandler := NewAuthHandler(authService)
 
-	// Middlewares globais
+	// 2. Middlewares globais
 	router.Use(CORSMiddleware())
 	router.Use(JWTMiddleware(authService))
 
@@ -69,8 +73,7 @@ func SetupRouter(contentHandler *ContentHandler, sseHandler *SSEHandler) *gin.En
 		authHandler:    authHandler,
 	}
 
-	// O RegisterHandlers vai registrar tudo, e o middleware vai agir 
-	// apenas nas rotas que possuem o escopo 'bearerAuth' no YAML
+	// 3. Registrar handlers do OpenAPI
 	RegisterHandlers(router, server)
 
 	return router

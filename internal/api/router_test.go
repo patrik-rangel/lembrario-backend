@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
@@ -18,15 +19,33 @@ import (
 	"lembrario-backend/internal/service"
 )
 
+var (
+	testToken   string
+	authService *api.AuthService
+)
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 func setupTestRouter(t *testing.T, svc service.ContentServiceInterface) *gin.Engine {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
+
+	// Configura credenciais de teste
+	os.Setenv("JWT_SECRET", "secret-muito-secreto-para-testes-123")
+	os.Setenv("ADMIN_USER", "admin")
+	os.Setenv("ADMIN_PASSWORD", "pass")
+
 	mr := miniredis.RunT(t)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+
+	// Gera o token que os testes vão usar
+	testService := api.NewAuthService()
+	token, _, _ := testService.GenerateToken("admin")
+	testToken = token
+
 	contentHandler := api.NewContentHandler(svc)
 	sseHandler := api.NewSSEHandler(rdb)
+
 	return api.SetupRouter(contentHandler, sseHandler)
 }
 
@@ -117,8 +136,10 @@ func TestRouteRegistration(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			req := httptest.NewRequest(tt.method, tt.path, nil)
-			r.ServeHTTP(w, req)
 
+			req.Header.Set("Authorization", "Bearer "+testToken)
+
+			r.ServeHTTP(w, req)
 			assert.Equal(t, tt.wantStatusCode, w.Code, "rota: %s %s", tt.method, tt.path)
 		})
 	}
@@ -135,6 +156,7 @@ func TestEventsEndpointHeaders(t *testing.T) {
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/events", nil)
 	req = req.WithContext(ctx)
+	req.Header.Set("Authorization", "Bearer "+testToken)
 	r.ServeHTTP(w, req)
 
 	assert.NotEqual(t, http.StatusNotFound, w.Code)

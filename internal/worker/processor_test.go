@@ -37,11 +37,19 @@ func (m *MockQueries) UpdateContentStatus(ctx context.Context, arg db.UpdateCont
 }
 
 // Métodos stub para satisfazer a interface Querier (sqlc)
-func (m *MockQueries) CreateContent(ctx context.Context, arg db.CreateContentParams) (db.Content, error) { return db.Content{}, nil }
+func (m *MockQueries) CreateContent(ctx context.Context, arg db.CreateContentParams) (db.Content, error) {
+	return db.Content{}, nil
+}
 func (m *MockQueries) DeleteContent(ctx context.Context, id string) error { return nil }
-func (m *MockQueries) GetContentByID(ctx context.Context, id string) (db.GetContentByIDRow, error) { return db.GetContentByIDRow{}, nil }
-func (m *MockQueries) GetContents(ctx context.Context, arg db.GetContentsParams) ([]db.GetContentsRow, error) { return nil, nil }
-func (m *MockQueries) UpsertNote(ctx context.Context, arg db.UpsertNoteParams) (db.Note, error) { return db.Note{}, nil }
+func (m *MockQueries) GetContentByID(ctx context.Context, id string) (db.GetContentByIDRow, error) {
+	return db.GetContentByIDRow{}, nil
+}
+func (m *MockQueries) GetContents(ctx context.Context, arg db.GetContentsParams) ([]db.GetContentsRow, error) {
+	return nil, nil
+}
+func (m *MockQueries) UpsertNote(ctx context.Context, arg db.UpsertNoteParams) (db.Note, error) {
+	return db.Note{}, nil
+}
 
 // ─── Test Table: Processamento ───────────────────────────────────────────────
 
@@ -55,38 +63,38 @@ func TestProcessContent(t *testing.T) {
 	}()
 
 	tests := []struct {
-		name          string
-		payload       worker.EnrichmentPayload
-		scrapeResult  *worker.ScrapedData
-		scrapeErr     error
+		name           string
+		payload        worker.EnrichmentPayload
+		scrapeResult   *worker.ScrapedData
+		scrapeErr      error
 		expectedStatus string
 	}{
 		{
-			name: "Sucesso no processamento completo",
+			name:    "Sucesso no processamento completo",
 			payload: worker.EnrichmentPayload{ID: "01ABC", URL: "https://youtube.com/v123", Type: "video"},
 			scrapeResult: &worker.ScrapedData{
 				Title:    "Vídeo de Go",
 				Provider: "youtube.com",
 			},
-			scrapeErr:     nil,
+			scrapeErr:      nil,
 			expectedStatus: "COMPLETED",
 		},
 		{
-			name: "Falha no scraping deve marcar como ERROR",
-			payload: worker.EnrichmentPayload{ID: "01ERR", URL: "https://link-quebrado.com"},
-			scrapeErr:     fmt.Errorf("timeout"),
+			name:           "Falha no scraping deve marcar como ERROR",
+			payload:        worker.EnrichmentPayload{ID: "01ERR", URL: "https://link-quebrado.com"},
+			scrapeErr:      fmt.Errorf("timeout"),
 			expectedStatus: "ERROR",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			
+
 			// Setup Redis & Mocks
 			mr := miniredis.RunT(t)
 			rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 			mockQueries := new(MockQueries)
-			
+
 			// Mock do Scraper
 			worker.ScrapeURLFunc = func(ctx context.Context, url string) (*worker.ScrapedData, error) {
 				return tt.scrapeResult, tt.scrapeErr

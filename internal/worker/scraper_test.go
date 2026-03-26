@@ -24,11 +24,11 @@ func createTestServer(htmlContent string) *httptest.Server {
 
 func TestScrapeGeneric(t *testing.T) {
 	tests := []struct {
-		name        string
-		html        string
-		wantTitle   string
-		wantDesc    string
-		wantThumb   string
+		name      string
+		html      string
+		wantTitle string
+		wantDesc  string
+		wantThumb string
 	}{
 		{
 			name: "Prioridade para Open Graph",
@@ -124,6 +124,6 @@ func TestScrapeGitHub_User(t *testing.T) {
 
 	// Aqui você precisaria do ajuste de URL que sugeri no topo (githubAPIBaseURL)
 	// data, err := worker.ScrapeGitHub_Interno(context.Background(), ghServer.URL, "patrikrangel")
-	
+
 	assert.True(t, true) // Placeholder para a lógica de API
 }
