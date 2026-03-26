@@ -1,10 +1,10 @@
 package api
 
 import (
-	"net/http"
-	"time"
-	"strconv"
 	"fmt"
+	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"lembrario-backend/internal/service"
@@ -66,8 +66,8 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 	}
 
 	if req.Url == "" || req.Type == "" {
-    c.JSON(http.StatusBadRequest, gin.H{"error": "url e type são obrigatórios"})
-    return
+		c.JSON(http.StatusBadRequest, gin.H{"error": "url e type são obrigatórios"})
+		return
 	}
 
 	params := service.CreateContentParams{
@@ -202,10 +202,10 @@ func (h *ContentHandler) UpdateNote(c *gin.Context, id string) {
 		return
 	}
 
-    if req.Body == "" {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "body é obrigatório"})
-        return
-    }
+	if req.Body == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "body é obrigatório"})
+		return
+	}
 
 	params := service.UpdateNoteParams{
 		ContentID: id,
@@ -240,31 +240,31 @@ func (h *ContentHandler) DeleteContent(c *gin.Context, id string) {
 }
 
 func (h *ContentHandler) GetSearch(c *gin.Context) {
-    query := c.Query("q")
+	query := c.Query("q")
 
-    limit := int64(20)
-    if l := c.Query("limit"); l != "" {
-        if parsed, err := strconv.ParseInt(l, 10, 64); err == nil && parsed > 0 && parsed <= 100 {
-            limit = parsed
-        }
-    }
+	limit := int64(20)
+	if l := c.Query("limit"); l != "" {
+		if parsed, err := strconv.ParseInt(l, 10, 64); err == nil && parsed > 0 && parsed <= 100 {
+			limit = parsed
+		}
+	}
 
-    offset := int64(0)
-    if o := c.Query("offset"); o != "" {
-        if parsed, err := strconv.ParseInt(o, 10, 64); err == nil && parsed >= 0 {
-            offset = parsed
-        }
-    }
+	offset := int64(0)
+	if o := c.Query("offset"); o != "" {
+		if parsed, err := strconv.ParseInt(o, 10, 64); err == nil && parsed >= 0 {
+			offset = parsed
+		}
+	}
 
-    // Filtro opcional: ?filter=type = video
-    filter := c.Query("filter")
+	// Filtro opcional: ?filter=type = video
+	filter := c.Query("filter")
 
-    result, err := h.contentService.Search(query, filter, limit, offset)
-    if err != nil {
-        fmt.Printf("Erro na busca: %v", err)
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao realizar busca"})
-        return
-    }
+	result, err := h.contentService.Search(query, filter, limit, offset)
+	if err != nil {
+		fmt.Printf("Erro na busca: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao realizar busca"})
+		return
+	}
 
-    c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, result)
 }

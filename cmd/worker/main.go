@@ -14,8 +14,8 @@ import (
 
 	"lembrario-backend/internal/config"
 	"lembrario-backend/internal/db"
-	"lembrario-backend/internal/worker"
 	"lembrario-backend/internal/search"
+	"lembrario-backend/internal/worker"
 )
 
 func main() {

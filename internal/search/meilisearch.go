@@ -1,10 +1,10 @@
 package search
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
-	"encoding/json"
 
 	"github.com/meilisearch/meilisearch-go"
 )
@@ -118,14 +118,14 @@ type SearchResult struct {
 
 // SearchHit representa um resultado individual com highlights
 type SearchHit struct {
-	ID          string            `json:"id"`
-	Title       string            `json:"title"`
-	Description string            `json:"description"`
-	URL         string            `json:"url"`
-	Type        string            `json:"type"`
-	Provider    string            `json:"provider"`
-	AuthorName  string            `json:"authorName,omitempty"`
-	CreatedAt   time.Time         `json:"createdAt"`
+	ID          string                 `json:"id"`
+	Title       string                 `json:"title"`
+	Description string                 `json:"description"`
+	URL         string                 `json:"url"`
+	Type        string                 `json:"type"`
+	Provider    string                 `json:"provider"`
+	AuthorName  string                 `json:"authorName,omitempty"`
+	CreatedAt   time.Time              `json:"createdAt"`
 	Highlights  map[string]interface{} `json:"_formatted,omitempty"`
 }
 
@@ -176,34 +176,34 @@ func (c *Client) Search(opts SearchOptions) (*SearchResult, error) {
 }
 
 func mapToSearchHit(m meilisearch.Hit) SearchHit {
-    str := func(key string) string {
-        raw, ok := m[key]
-        if !ok {
-            return ""
-        }
-        var s string
-        if err := json.Unmarshal(raw, &s); err != nil {
-            return ""
-        }
-        return s
-    }
+	str := func(key string) string {
+		raw, ok := m[key]
+		if !ok {
+			return ""
+		}
+		var s string
+		if err := json.Unmarshal(raw, &s); err != nil {
+			return ""
+		}
+		return s
+	}
 
-    hit := SearchHit{
-        ID:          str("id"),
-        Title:       str("title"),
-        Description: str("description"),
-        URL:         str("url"),
-        Type:        str("type"),
-        Provider:    str("provider"),
-        AuthorName:  str("authorName"),
-    }
+	hit := SearchHit{
+		ID:          str("id"),
+		Title:       str("title"),
+		Description: str("description"),
+		URL:         str("url"),
+		Type:        str("type"),
+		Provider:    str("provider"),
+		AuthorName:  str("authorName"),
+	}
 
-    if raw, ok := m["_formatted"]; ok {
-        var formatted map[string]interface{}
-        if err := json.Unmarshal(raw, &formatted); err == nil {
-            hit.Highlights = formatted
-        }
-    }
+	if raw, ok := m["_formatted"]; ok {
+		var formatted map[string]interface{}
+		if err := json.Unmarshal(raw, &formatted); err == nil {
+			hit.Highlights = formatted
+		}
+	}
 
-    return hit
+	return hit
 }

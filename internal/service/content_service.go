@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"fmt"
+	"log"
 
 	"lembrario-backend/internal/db" // Assumindo que o sqlc gerou tipos e queries aqui
 	"lembrario-backend/internal/search"
@@ -17,24 +17,24 @@ import (
 const enrichmentQueue = "enrichment_queue"
 
 type ContentService struct {
-	queries *db.Queries
-	redis   *redis.Client
+	queries      *db.Queries
+	redis        *redis.Client
 	searchClient *search.Client
 }
 
 func NewContentService(queries *db.Queries, redisClient *redis.Client, search *search.Client) *ContentService {
 	return &ContentService{
-		queries: queries,
-		redis:   redisClient,
+		queries:      queries,
+		redis:        redisClient,
 		searchClient: search,
 	}
 }
 
 type SearchResponse struct {
-    Hits             []search.SearchHit `json:"hits"`
-    TotalHits        int64              `json:"totalHits"`
-    ProcessingTimeMs int64              `json:"processingTimeMs"`
-    Query            string             `json:"query"`
+	Hits             []search.SearchHit `json:"hits"`
+	TotalHits        int64              `json:"totalHits"`
+	ProcessingTimeMs int64              `json:"processingTimeMs"`
+	Query            string             `json:"query"`
 }
 
 // CreateContentParams define os parâmetros para a criação de um novo conteúdo.
@@ -56,26 +56,26 @@ type GetContentsParams struct {
 }
 
 func (s *ContentService) Search(query, filter string, limit, offset int64) (*SearchResponse, error) {
-    if query == "" {
-        return &SearchResponse{Hits: []search.SearchHit{}, Query: query}, nil
-    }
+	if query == "" {
+		return &SearchResponse{Hits: []search.SearchHit{}, Query: query}, nil
+	}
 
-    result, err := s.searchClient.Search(search.SearchOptions{
-        Query:  query,
-        Filter: filter,
-        Limit:  limit,
-        Offset: offset,
-    })
-    if err != nil {
-        return nil, fmt.Errorf("erro na busca: %w", err)
-    }
+	result, err := s.searchClient.Search(search.SearchOptions{
+		Query:  query,
+		Filter: filter,
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("erro na busca: %w", err)
+	}
 
-    return &SearchResponse{
-        Hits:             result.Hits,
-        TotalHits:        result.TotalHits,
-        ProcessingTimeMs: result.ProcessingTimeMs,
-        Query:            result.Query,
-    }, nil
+	return &SearchResponse{
+		Hits:             result.Hits,
+		TotalHits:        result.TotalHits,
+		ProcessingTimeMs: result.ProcessingTimeMs,
+		Query:            result.Query,
+	}, nil
 }
 
 // Create cria um novo conteúdo, salva no banco de dados e o enfileira para enriquecimento.

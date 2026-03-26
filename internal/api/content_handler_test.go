@@ -12,10 +12,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"lembrario-backend/internal/api"
 	"lembrario-backend/internal/db"
 	"lembrario-backend/internal/search"
 	"lembrario-backend/internal/service"
-	"lembrario-backend/internal/api"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -24,53 +24,53 @@ import (
 
 type mockContentService struct {
 	createFn      func(ctx context.Context, params service.CreateContentParams) (db.Content, error)
-    getContentsFn func(ctx context.Context, params service.GetContentsParams) ([]db.GetContentsRow, error)	
-	getByIDFn 	  func(ctx context.Context, id string) (db.GetContentByIDRow, error)
-	upsertNoteFn func(ctx context.Context, params service.UpdateNoteParams) (db.Note, error)
+	getContentsFn func(ctx context.Context, params service.GetContentsParams) ([]db.GetContentsRow, error)
+	getByIDFn     func(ctx context.Context, id string) (db.GetContentByIDRow, error)
+	upsertNoteFn  func(ctx context.Context, params service.UpdateNoteParams) (db.Note, error)
 	deleteFn      func(ctx context.Context, id string) error
 	searchFn      func(query, filter string, limit, offset int64) (*service.SearchResponse, error)
 }
 
 func (m *mockContentService) Create(ctx context.Context, params service.CreateContentParams) (db.Content, error) {
-    if m.createFn == nil {
-        return db.Content{}, nil
-    }
-    return m.createFn(ctx, params)
+	if m.createFn == nil {
+		return db.Content{}, nil
+	}
+	return m.createFn(ctx, params)
 }
 
 func (m *mockContentService) GetContents(ctx context.Context, params service.GetContentsParams) ([]db.GetContentsRow, error) {
-    if m.getContentsFn == nil {
-        return nil, nil
-    }
-    return m.getContentsFn(ctx, params)
+	if m.getContentsFn == nil {
+		return nil, nil
+	}
+	return m.getContentsFn(ctx, params)
 }
 
 func (m *mockContentService) GetByID(ctx context.Context, id string) (db.GetContentByIDRow, error) {
-    if m.getByIDFn == nil {
-        return db.GetContentByIDRow{}, nil
-    }
-    return m.getByIDFn(ctx, id)
+	if m.getByIDFn == nil {
+		return db.GetContentByIDRow{}, nil
+	}
+	return m.getByIDFn(ctx, id)
 }
 
 func (m *mockContentService) UpsertNote(ctx context.Context, params service.UpdateNoteParams) (db.Note, error) {
-    if m.upsertNoteFn == nil {
-        return db.Note{}, nil
-    }
-    return m.upsertNoteFn(ctx, params)
+	if m.upsertNoteFn == nil {
+		return db.Note{}, nil
+	}
+	return m.upsertNoteFn(ctx, params)
 }
 
 func (m *mockContentService) Delete(ctx context.Context, id string) error {
-    if m.deleteFn == nil {
-        return nil
-    }
-    return m.deleteFn(ctx, id)
+	if m.deleteFn == nil {
+		return nil
+	}
+	return m.deleteFn(ctx, id)
 }
 
 func (m *mockContentService) Search(query, filter string, limit, offset int64) (*service.SearchResponse, error) {
-    if m.searchFn == nil {
-        return nil, nil
-    }
-    return m.searchFn(query, filter, limit, offset)
+	if m.searchFn == nil {
+		return nil, nil
+	}
+	return m.searchFn(query, filter, limit, offset)
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -101,20 +101,20 @@ func setupRouter(svc service.ContentServiceInterface) *gin.Engine {
 }
 
 func makeContentRow(id, url, status string, withMetadata bool) db.GetContentsRow {
-    now := pgtype.Timestamptz{Time: time.Now(), Valid: true}
-    row := db.GetContentsRow{
-        ID:        id,
-        Url:       url,
-        Status:    status,
-        Type:      pgtype.Text{String: "website", Valid: true},
-        CreatedAt: now,
-        Provider:  pgtype.Text{String: "medium.com", Valid: true},
-    }
-    if withMetadata {
-        row.Title = pgtype.Text{String: "Título Teste", Valid: true}
-        row.Description = pgtype.Text{String: "Descrição Teste", Valid: true}
-    }
-    return row
+	now := pgtype.Timestamptz{Time: time.Now(), Valid: true}
+	row := db.GetContentsRow{
+		ID:        id,
+		Url:       url,
+		Status:    status,
+		Type:      pgtype.Text{String: "website", Valid: true},
+		CreatedAt: now,
+		Provider:  pgtype.Text{String: "medium.com", Valid: true},
+	}
+	if withMetadata {
+		row.Title = pgtype.Text{String: "Título Teste", Valid: true}
+		row.Description = pgtype.Text{String: "Descrição Teste", Valid: true}
+	}
+	return row
 }
 
 // ─── CreateContent ────────────────────────────────────────────────────────────
@@ -179,39 +179,39 @@ func TestCreateContent(t *testing.T) {
 // ─── GetContents ──────────────────────────────────────────────────────────────
 
 func TestGetContents(t *testing.T) {
-    tests := []struct {
-        name           string
-        mockFn         func(ctx context.Context, params service.GetContentsParams) ([]db.GetContentsRow, error)
-        wantStatusCode int
-        wantLen        int
-    }{
-        {
-            name: "sucesso — retorna lista com metadados",
-            mockFn: func(_ context.Context, _ service.GetContentsParams) ([]db.GetContentsRow, error) {
-                return []db.GetContentsRow{
-                    makeContentRow("01A", "https://medium.com/a", "COMPLETED", true),
-                    makeContentRow("01B", "https://dev.to/b", "COMPLETED", true),
-                }, nil
-            },
-            wantStatusCode: http.StatusOK,
-            wantLen:        2,
-        },
-        {
-            name: "sucesso — lista vazia",
-            mockFn: func(_ context.Context, _ service.GetContentsParams) ([]db.GetContentsRow, error) {
-                return []db.GetContentsRow{}, nil
-            },
-            wantStatusCode: http.StatusOK,
-            wantLen:        0,
-        },
-        {
-            name: "erro — falha no service",
-            mockFn: func(_ context.Context, _ service.GetContentsParams) ([]db.GetContentsRow, error) {
-                return nil, errors.New("db timeout")
-            },
-            wantStatusCode: http.StatusInternalServerError,
-        },
-    }
+	tests := []struct {
+		name           string
+		mockFn         func(ctx context.Context, params service.GetContentsParams) ([]db.GetContentsRow, error)
+		wantStatusCode int
+		wantLen        int
+	}{
+		{
+			name: "sucesso — retorna lista com metadados",
+			mockFn: func(_ context.Context, _ service.GetContentsParams) ([]db.GetContentsRow, error) {
+				return []db.GetContentsRow{
+					makeContentRow("01A", "https://medium.com/a", "COMPLETED", true),
+					makeContentRow("01B", "https://dev.to/b", "COMPLETED", true),
+				}, nil
+			},
+			wantStatusCode: http.StatusOK,
+			wantLen:        2,
+		},
+		{
+			name: "sucesso — lista vazia",
+			mockFn: func(_ context.Context, _ service.GetContentsParams) ([]db.GetContentsRow, error) {
+				return []db.GetContentsRow{}, nil
+			},
+			wantStatusCode: http.StatusOK,
+			wantLen:        0,
+		},
+		{
+			name: "erro — falha no service",
+			mockFn: func(_ context.Context, _ service.GetContentsParams) ([]db.GetContentsRow, error) {
+				return nil, errors.New("db timeout")
+			},
+			wantStatusCode: http.StatusInternalServerError,
+		},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -236,70 +236,70 @@ func TestGetContents(t *testing.T) {
 // ─── GetContentByID ───────────────────────────────────────────────────────────
 
 func TestGetContentByID(t *testing.T) {
-    now := pgtype.Timestamptz{Time: time.Now(), Valid: true}
+	now := pgtype.Timestamptz{Time: time.Now(), Valid: true}
 
-    tests := []struct {
-        name           string
-        id             string
-        mockFn         func(ctx context.Context, id string) (db.GetContentByIDRow, error)
-        wantStatusCode int
-        checkBody      func(t *testing.T, body []byte)
-    }{
-        {
-            name: "sucesso — retorna conteúdo com metadados",
-            id:   "01ABC",
-            mockFn: func(_ context.Context, id string) (db.GetContentByIDRow, error) {
-                return db.GetContentByIDRow{
-                    ID:          id,
-                    Url:         "https://medium.com/artigo",
-                    Status:      "COMPLETED",
-                    Type:        pgtype.Text{String: "website", Valid: true},
-                    CreatedAt:   now,
-                    UpdatedAt:   now,
-                    Title:       pgtype.Text{String: "Artigo Incrível", Valid: true},
-                    Description: pgtype.Text{String: "Uma descrição", Valid: true},
-                    Provider:    pgtype.Text{String: "medium.com", Valid: true},
-                }, nil
-            },
-            wantStatusCode: http.StatusOK,
-            checkBody: func(t *testing.T, body []byte) {
-                var resp map[string]any
-                json.Unmarshal(body, &resp)
-                assert.Equal(t, "01ABC", resp["id"])
-                assert.NotNil(t, resp["metadata"])
-                metadata := resp["metadata"].(map[string]any)
-                assert.Equal(t, "Artigo Incrível", metadata["title"])
-            },
-        },
-        {
-            name: "sucesso — conteúdo sem metadados ainda (PENDING)",
-            id:   "01DEF",
-            mockFn: func(_ context.Context, id string) (db.GetContentByIDRow, error) {
-                return db.GetContentByIDRow{
-                    ID:        id,
-                    Url:       "https://dev.to/artigo",
-                    Status:    "PENDING",
-                    Type:      pgtype.Text{String: "website", Valid: true},
-                    CreatedAt: now,
-                    UpdatedAt: now,
-                }, nil
-            },
-            wantStatusCode: http.StatusOK,
-            checkBody: func(t *testing.T, body []byte) {
-                var resp map[string]any
-                json.Unmarshal(body, &resp)
-                assert.Nil(t, resp["metadata"])
-            },
-        },
-        {
-            name: "erro — conteúdo não encontrado",
-            id:   "nao-existe",
-            mockFn: func(_ context.Context, _ string) (db.GetContentByIDRow, error) {
-                return db.GetContentByIDRow{}, errors.New("not found")
-            },
-            wantStatusCode: http.StatusNotFound,
-        },
-    }
+	tests := []struct {
+		name           string
+		id             string
+		mockFn         func(ctx context.Context, id string) (db.GetContentByIDRow, error)
+		wantStatusCode int
+		checkBody      func(t *testing.T, body []byte)
+	}{
+		{
+			name: "sucesso — retorna conteúdo com metadados",
+			id:   "01ABC",
+			mockFn: func(_ context.Context, id string) (db.GetContentByIDRow, error) {
+				return db.GetContentByIDRow{
+					ID:          id,
+					Url:         "https://medium.com/artigo",
+					Status:      "COMPLETED",
+					Type:        pgtype.Text{String: "website", Valid: true},
+					CreatedAt:   now,
+					UpdatedAt:   now,
+					Title:       pgtype.Text{String: "Artigo Incrível", Valid: true},
+					Description: pgtype.Text{String: "Uma descrição", Valid: true},
+					Provider:    pgtype.Text{String: "medium.com", Valid: true},
+				}, nil
+			},
+			wantStatusCode: http.StatusOK,
+			checkBody: func(t *testing.T, body []byte) {
+				var resp map[string]any
+				json.Unmarshal(body, &resp)
+				assert.Equal(t, "01ABC", resp["id"])
+				assert.NotNil(t, resp["metadata"])
+				metadata := resp["metadata"].(map[string]any)
+				assert.Equal(t, "Artigo Incrível", metadata["title"])
+			},
+		},
+		{
+			name: "sucesso — conteúdo sem metadados ainda (PENDING)",
+			id:   "01DEF",
+			mockFn: func(_ context.Context, id string) (db.GetContentByIDRow, error) {
+				return db.GetContentByIDRow{
+					ID:        id,
+					Url:       "https://dev.to/artigo",
+					Status:    "PENDING",
+					Type:      pgtype.Text{String: "website", Valid: true},
+					CreatedAt: now,
+					UpdatedAt: now,
+				}, nil
+			},
+			wantStatusCode: http.StatusOK,
+			checkBody: func(t *testing.T, body []byte) {
+				var resp map[string]any
+				json.Unmarshal(body, &resp)
+				assert.Nil(t, resp["metadata"])
+			},
+		},
+		{
+			name: "erro — conteúdo não encontrado",
+			id:   "nao-existe",
+			mockFn: func(_ context.Context, _ string) (db.GetContentByIDRow, error) {
+				return db.GetContentByIDRow{}, errors.New("not found")
+			},
+			wantStatusCode: http.StatusNotFound,
+		},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -321,53 +321,53 @@ func TestGetContentByID(t *testing.T) {
 // ─── UpdateNote ───────────────────────────────────────────────────────────────
 
 func TestUpdateNote(t *testing.T) {
-    now := pgtype.Timestamptz{Time: time.Now(), Valid: true}
+	now := pgtype.Timestamptz{Time: time.Now(), Valid: true}
 
-    tests := []struct {
-        name           string
-        id             string
-        body           map[string]any
-        mockFn         func(ctx context.Context, params service.UpdateNoteParams) (db.Note, error)
-        wantStatusCode int
-        checkBody      func(t *testing.T, body []byte)
-    }{
-        {
-            name: "sucesso — cria nota",
-            id:   "01ABC",
-            body: map[string]any{"body": "Minha anotação sobre o artigo"},
-            mockFn: func(_ context.Context, params service.UpdateNoteParams) (db.Note, error) {
-                return db.Note{
-                    ID:        "note-01",
-                    Body:      params.Body,
-                    CreatedAt: now,
-                    UpdatedAt: now,
-                }, nil
-            },
-            wantStatusCode: http.StatusOK,
-            checkBody: func(t *testing.T, body []byte) {
-                var resp map[string]any
-                json.Unmarshal(body, &resp)
-                assert.Equal(t, "note-01", resp["id"])
-                assert.Equal(t, "Minha anotação sobre o artigo", resp["body"])
-            },
-        },
-        {
-            name:           "erro — body inválido (sem campo body)",
-            id:             "01ABC",
-            body:           map[string]any{},
-            mockFn:         nil,
-            wantStatusCode: http.StatusBadRequest,
-        },
-        {
-            name: "erro — falha no service",
-            id:   "01ABC",
-            body: map[string]any{"body": "Anotação"},
-            mockFn: func(_ context.Context, _ service.UpdateNoteParams) (db.Note, error) {
-                return db.Note{}, errors.New("db error")
-            },
-            wantStatusCode: http.StatusInternalServerError,
-        },
-    }
+	tests := []struct {
+		name           string
+		id             string
+		body           map[string]any
+		mockFn         func(ctx context.Context, params service.UpdateNoteParams) (db.Note, error)
+		wantStatusCode int
+		checkBody      func(t *testing.T, body []byte)
+	}{
+		{
+			name: "sucesso — cria nota",
+			id:   "01ABC",
+			body: map[string]any{"body": "Minha anotação sobre o artigo"},
+			mockFn: func(_ context.Context, params service.UpdateNoteParams) (db.Note, error) {
+				return db.Note{
+					ID:        "note-01",
+					Body:      params.Body,
+					CreatedAt: now,
+					UpdatedAt: now,
+				}, nil
+			},
+			wantStatusCode: http.StatusOK,
+			checkBody: func(t *testing.T, body []byte) {
+				var resp map[string]any
+				json.Unmarshal(body, &resp)
+				assert.Equal(t, "note-01", resp["id"])
+				assert.Equal(t, "Minha anotação sobre o artigo", resp["body"])
+			},
+		},
+		{
+			name:           "erro — body inválido (sem campo body)",
+			id:             "01ABC",
+			body:           map[string]any{},
+			mockFn:         nil,
+			wantStatusCode: http.StatusBadRequest,
+		},
+		{
+			name: "erro — falha no service",
+			id:   "01ABC",
+			body: map[string]any{"body": "Anotação"},
+			mockFn: func(_ context.Context, _ service.UpdateNoteParams) (db.Note, error) {
+				return db.Note{}, errors.New("db error")
+			},
+			wantStatusCode: http.StatusInternalServerError,
+		},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

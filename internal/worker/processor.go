@@ -20,8 +20,8 @@ const (
 
 // EnrichmentPayload representa a estrutura do payload esperado na fila de enriquecimento.
 type EnrichmentPayload struct {
-	ID  string `json:"id"`
-	URL string `json:"url"`
+	ID   string `json:"id"`
+	URL  string `json:"url"`
 	Type string `json:"type"`
 }
 
@@ -113,11 +113,11 @@ func processContent(ctx context.Context, redisClient *redis.Client, queries *db.
 	}
 
 	if err := indexContent(searchClient, payload, scrapedData); err != nil {
-        // Não é fatal — o conteúdo já foi salvo no banco
-        log.Printf("⚠️ Erro ao indexar conteúdo %s no Meilisearch: %v", payload.ID, err)
-    } else {
-        log.Printf("🔍 Conteúdo %s indexado no Meilisearch", payload.ID)
-    }
+		// Não é fatal — o conteúdo já foi salvo no banco
+		log.Printf("⚠️ Erro ao indexar conteúdo %s no Meilisearch: %v", payload.ID, err)
+	} else {
+		log.Printf("🔍 Conteúdo %s indexado no Meilisearch", payload.ID)
+	}
 
 	// 3. Atualizar status para COMPLETED
 	err = updateContentStatus(ctx, queries, payload.ID, "COMPLETED")
@@ -219,14 +219,14 @@ func notifyContentUpdate(ctx context.Context, redisClient *redis.Client, content
 }
 
 func indexContent(searchClient *search.Client, payload EnrichmentPayload, data *ScrapedData) error {
-    return searchClient.IndexContent(search.ContentDocument{
-        ID:          payload.ID,
-        Title:       data.Title,
-        Description: data.Description,
-        URL:         payload.URL,
-        Type:        payload.Type, // precisa adicionar Type no EnrichmentPayload
-        Provider:    data.Provider,
-        AuthorName:  data.AuthorName,
-        CreatedAt:   time.Now(),
-    })
+	return searchClient.IndexContent(search.ContentDocument{
+		ID:          payload.ID,
+		Title:       data.Title,
+		Description: data.Description,
+		URL:         payload.URL,
+		Type:        payload.Type, // precisa adicionar Type no EnrichmentPayload
+		Provider:    data.Provider,
+		AuthorName:  data.AuthorName,
+		CreatedAt:   time.Now(),
+	})
 }
