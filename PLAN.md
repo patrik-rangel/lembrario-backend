@@ -1,29 +1,44 @@
-🏗️ Fase 1: Infraestrutura e Configuração
-Objetivo: Subir o motor de busca e preparar as credenciais.
+📋 Plano de Implementação: Autenticação JWT
+O objetivo é trancar todas as rotas de gerenciamento de conteúdo (/contents, /search, /events), deixando apenas o /health e o novo /login abertos.
 
-[x] Docker Compose: Adicionar o serviço meilisearch ao docker-compose.yml.
+─── Passo 1: Infraestrutura e Configuração ────────────────────────────────
 
-[x] Variáveis de Ambiente: Adicionar MEILI_HOST e MEILI_MASTER_KEY ao .env e .env.example.
+Variáveis de Ambiente: Adicionar no .env:
 
-[x] Client Go: Instalar o SDK oficial: go get github.com/meilisearch/meilisearch-go.
+JWT_SECRET: Uma string longa e aleatória (a "chave mestra").
 
-🔄 Fase 2: Indexação no Worker (O "Push")
-Objetivo: Garantir que, assim que o Worker terminar o scraping, o dado vá para o índice.
+ADMIN_USER: Seu usuário para o login.
 
-[ ] Internal Package: Criar internal/search/meilisearch.go para centralizar a conexão e as operações de indexação.
+ADMIN_PASSWORD: Sua senha (no início, pode ser simples, depois evoluímos para hash).
 
-[ ] Worker Integration: No final do processamento do Worker (após o UpsertMetadata), enviar o "Documento Rico" para o Meilisearch.
+─── Passo 2: O Coração do Auth (internal/api/auth.go) ──────────────────
+Criar um serviço responsável por:
 
-[ ] Document Schema: Definir a estrutura do documento (ID, Title, Description, URL, Type, CreatedAt).
+GenerateToken: Criar o token com claims (sub: username, exp: 24h).
 
-🔍 Fase 3: Endpoint de Busca na API
-Objetivo: Expor a funcionalidade para o Frontend.
+ValidateToken: Verificar a assinatura e a expiração do token recebido.
 
-[ ] Service Layer: Adicionar o método Search(query string) no ContentService.
+─── Passo 3: O Segurança da Porta (internal/api/middleware.go) ──────────
+Implementar o JWTMiddleware:
 
-[ ] Handler API: Implementar o GET /search?q=termo no api/handler.go.
+Extrair o token do Header Authorization: Bearer <TOKEN>.
 
-[ ] Search Options: Configurar AttributesToHighlight para que o frontend possa mostrar onde o termo foi encontrado.
+Se o token for inválido ou ausente, retornar 401 Unauthorized imediatamente.
 
-🧹 Fase 4: Sincronização e Ajustes (Opcional)
-[ ] Backfill Script: (Opcional) Um script simples para indexar os links que você já salvou no banco antes de ter o Meilisearch.
+Se for válido, salvar o usuário no contexto do Gin (c.Set("user", username)) e seguir para a rota.
+
+─── Passo 4: O Endpoint de Login (internal/api/login_handler.go) ───────
+Criar o handler para POST /login:
+
+Receber JSON com username e password.
+
+Validar contra as variáveis de ambiente.
+
+Retornar o JWT e o tempo de expiração.
+
+─── Passo 5: Proteção das Rotas (internal/api/router.go) ────────────────
+Reorganizar o roteador:
+
+Rotas Públicas: /health e /login.
+
+Rotas Protegidas: Criar um router.Group("/") que utiliza o JWTMiddleware e registrar os handlers de conteúdo dentro dele.

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,7 +9,12 @@ import (
 type apiServer struct {
 	contentHandler *ContentHandler
 	sseHandler     *SSEHandler
+	authHandler    *AuthHandler
 	// Outros handlers podem ser adicionados aqui conforme necessário
+}
+
+func (s *apiServer) PostLogin(c *gin.Context) {
+    s.authHandler.Login(c)
 }
 
 // PostContents implementa o endpoint POST /contents, delegando para o ContentHandler
@@ -52,18 +56,21 @@ func (s *apiServer) GetSearch(c *gin.Context, params GetSearchParams) {
 func SetupRouter(contentHandler *ContentHandler, sseHandler *SSEHandler) *gin.Engine {
 	router := gin.Default()
 
-	// Rota de saúde
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "UP"})
-	})
+	authService := NewAuthService()
+	authHandler := NewAuthHandler(authService)
 
-	// Criar servidor da API
+	// Middlewares globais
+	router.Use(CORSMiddleware())
+	router.Use(JWTMiddleware(authService))
+
 	server := &apiServer{
 		contentHandler: contentHandler,
 		sseHandler:     sseHandler,
+		authHandler:    authHandler,
 	}
 
-	// Registrar rotas
+	// O RegisterHandlers vai registrar tudo, e o middleware vai agir 
+	// apenas nas rotas que possuem o escopo 'bearerAuth' no YAML
 	RegisterHandlers(router, server)
 
 	return router
