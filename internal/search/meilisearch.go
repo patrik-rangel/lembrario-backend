@@ -33,7 +33,7 @@ type Client struct {
 func New() (*Client, error) {
 	host := os.Getenv("MEILI_HOST")
 	if host == "" {
-		host = "http://localhost:7700"
+		host = "http://meilisearch:7700"
 	}
 	apiKey := os.Getenv("MEILI_MASTER_KEY")
 

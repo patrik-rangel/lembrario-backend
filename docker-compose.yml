@@ -1,41 +1,65 @@
-version: '3'
-services:
-  # api:
-  #   build: ./cmd/api
-  #   environment:
-  #     - DATABASE_URL=postgres://user:password@db:5432/database
-  #     - REDIS_ADDR=redis:6379
-  #   ports:
-  #     - "8080:8080"
-  #   depends_on:
-  #     - db
-  #     - redis
-  #   restart: always
+version: '3.8'
 
-  # worker:
-  #   build: ./cmd/worker
-  #   environment:
-  #     - DATABASE_URL=postgres://user:password@db:5432/database
-  #     - REDIS_ADDR=redis:6379
-  #   depends_on:
-  #     - db
-  #     - redis
-  #   restart: always
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lembrario-api
+    command: ["./api"]
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgres://user:password@db:5432/lembrario
+      - REDIS_ADDR=redis:6379
+      - MEILI_URL=${MEILI_HOST}
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_USER=${ADMIN_USER}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+      - redis
+      - meilisearch
+    restart: always
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lembrario-worker
+    command: ["./worker"]
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgres://user:password@db:5432/lembrario
+      - REDIS_ADDR=redis:6379
+      - MEILI_URL=${MEILI_HOST}
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
+    volumes:
+      - ./uploads:/root/uploads
+    depends_on:
+      - db
+      - redis
+    restart: always
 
   db:
-    image: postgres:14
+    image: postgres:15-alpine
+    container_name: lembrario-db
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=lembrario  # <--- Sincronizado com o .env
+      - POSTGRES_DB=lembrario
     ports:
-      - "5432:5432"            # <--- Essencial para o go run externo funcionar
+      - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     restart: always
 
   redis:
-    image: redis:7
+    image: redis:7-alpine
+    container_name: lembrario-redis
     ports:
       - "6379:6379"
     restart: always
@@ -46,11 +70,25 @@ services:
     ports:
       - "7700:7700"
     environment:
-      MEILI_MASTER_KEY: "masterKey123"
-      MEILI_ENV: "development"
+      - MEILI_MASTER_KEY=masterKey123
+      - MEILI_ENV=development
     volumes:
       - meili_data:/meili_data
     restart: unless-stopped
+
+  gateway:
+    image: nginx:alpine
+    container_name: lembrario-gateway
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./uploads:/var/www/uploads:ro # Onde o worker salva as fotos
+    depends_on:
+      - api
+    restart: always
 
 volumes:
   db-data:
