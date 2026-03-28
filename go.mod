@@ -1,6 +1,6 @@
 module lembrario-backend
 
-go 1.23.0
+go 1.25.0
 
 require (
 	github.com/PuerkitoBio/goquery v1.12.0
@@ -8,6 +8,7 @@ require (
 	github.com/deepmap/oapi-codegen v1.16.3
 	github.com/getkin/kin-openapi v0.134.0
 	github.com/gin-gonic/gin v1.12.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/jackc/pgx/v5 v5.9.1
 	github.com/joho/godotenv v1.5.1
 	github.com/meilisearch/meilisearch-go v0.36.1
@@ -45,7 +46,6 @@ require (
 	github.com/go-playground/validator/v10 v10.30.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gomarkdown/markdown v0.0.0-20230716120725-531d2d74bc12 // indirect
 	github.com/google/uuid v1.3.1 // indirect
