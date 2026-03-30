@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: lembrario-api
+    command: ["./api"]
+    env_file: .env
+    # Removi a exposição da porta 8080. O Nginx falará com ela internamente.
+    depends_on:
+      - db
+      - redis
+      - meilisearch
+    deploy:
+      resources:
+        limits:
+          memory: 200M # Evita que o Go consuma toda a RAM
+    restart: always
+
+  worker:
+    build: .
+    container_name: lembrario-worker
+    command: ["./worker"]
+    env_file: .env
+    volumes:
+      - ./uploads:/root/uploads # Onde ele salva as thumbnails
+    depends_on:
+      - db
+      - redis
+    deploy:
+      resources:
+        limits:
+          memory: 200M
+    restart: always
+
+  db:
+    image: postgres:15-alpine
+    container_name: lembrario-db
+    environment:
+      - POSTGRES_USER=${DB_USER} # Use variáveis do .env para segurança
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=lembrario
+    # REMOVIDO: ports: "5432:5432" - Ninguém da internet deve acessar seu banco!
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: lembrario-redis
+    # REMOVIDO: ports: "6379:6379" - Acesso apenas interno.
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    restart: always
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.7
+    container_name: lembrario-meilisearch
+    environment:
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - MEILI_ENV=production # Mudança para prod
+    volumes:
+      - meili_data:/meili_data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: always
+
+  gateway:
+    image: nginx:alpine
+    container_name: lembrario-gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./uploads:/var/www/uploads:ro
+      - ./www:/var/www/html:ro
+    depends_on:
+      - api
+    restart: always
+
+volumes:
+  db-data:
+  meili_data:
